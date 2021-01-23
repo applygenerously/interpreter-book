@@ -1,6 +1,5 @@
 import Lexer from '../lexer'
 import { 
-  Expression,
   ExpressionStatement, 
   Identifier, 
   LetStatement, 
@@ -8,6 +7,8 @@ import {
   IntegerLiteral, 
   PrefixExpression,
   InfixExpression,
+  Expression,
+  Boolean
 } from '../ast'
 import Parser from './'
 
@@ -99,7 +100,9 @@ describe('parser', () => {
   test.each([
     ['!5;', '!', 5],
     ['-15', '-', 15],
-  ])('parses prefix expressions', (input, operator, integerValue) => {
+    ['!true', '!', true],
+    ['!false', '!', false],
+  ])('parses prefix expressions', (input, operator, value) => {
     const l = new Lexer(input)
     const p = new Parser(l)
     const program = p.parseProgram()
@@ -111,7 +114,7 @@ describe('parser', () => {
     const expression = statement.expression as PrefixExpression
     expect(expression).toBeInstanceOf(PrefixExpression)
     expect(expression.operator).toBe(operator)
-    testIntegerLiteral(expect, expression.right, integerValue)
+    testLiteralExpression(expect, expression.right, value)
   })
 
   test.each([
@@ -123,6 +126,9 @@ describe('parser', () => {
     ['5 < 5;', 5, '<', 5],
     ['5 == 5;', 5, '==', 5],
     ['5 != 5;', 5, '!=', 5],
+    ['true == true', true, '==', true],
+    ['true != false', true, '!=', false],
+    ['false == false', false, '==', false],
   ])('parses infix expressions', (input, leftValue, operator, rightValue) => {
     const l = new Lexer(input)
     const p = new Parser(l)
@@ -131,12 +137,7 @@ describe('parser', () => {
 
     expect(program.statements.length).toBe(1)
     const statement = program.statements[0] as ExpressionStatement
-    expect(statement).toBeInstanceOf(ExpressionStatement)
-    const expression = statement.expression as InfixExpression
-    expect(expression).toBeInstanceOf(InfixExpression)
-    testIntegerLiteral(expect, expression.left, leftValue)
-    expect(expression.operator).toBe(operator)
-    testIntegerLiteral(expect, expression.right, rightValue)
+    testsInfixExpression(expect, statement.expression, leftValue, operator, rightValue)
   })
 
   test.each([
@@ -154,6 +155,10 @@ describe('parser', () => {
     ['5 > 4 == 3 < 4', '((5 > 4) == (3 < 4))'],
     ['5 < 4 != 3 > 4', '((5 < 4) != (3 > 4))'],
     ['3 + 4 * 5 == 3 * 1 + 4 * 5', '((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))'],
+    ['true', 'true'],
+    ['false', 'false'],
+    ['3 > 5 == false', '((3 > 5) == false)'],
+    ['3 < 5 == true', '((3 < 5) == true)'],
   ])('parses operators in correct precedence', (input, expected) => {
     const l = new Lexer(input)
     const p = new Parser(l)
@@ -162,6 +167,21 @@ describe('parser', () => {
 
     const actual = program.string()
     expect(actual).toBe(expected)
+  })
+
+  test.each([
+    ['true', true],
+    ['false', false],
+  ])('parses boolean expressions', (input, expected) => {
+    const l = new Lexer(input)
+    const p = new Parser(l)
+    const program = p.parseProgram()
+    checkParserErrors(p)
+
+    expect(program.statements.length).toBe(1)
+    const expression = program.statements[0].expression as Boolean
+    expect(expression).toBeInstanceOf(Boolean)
+    expect(expression.value).toBe(expected)
   })
 })
 
@@ -172,10 +192,49 @@ function testLetStatement(expect: jest.Expect, statement: LetStatement, expected
   expect(statement.name!.tokenLiteral()).toBe(expected)
 }
 
-function testIntegerLiteral(expect: jest.Expect, il: Expression, value: number) {
+function testIntegerLiteral(expect: jest.Expect, il: IntegerLiteral, value: number) {
   expect(il).toBeInstanceOf(IntegerLiteral)
   expect(il.value).toBe(value)
   expect(il.tokenLiteral()).toBe(value.toString())
+}
+
+function testIdentifier(expect: jest.Expect, ident: Identifier, value: string) {
+  expect(ident).toBeInstanceOf(Identifier)
+  expect(ident.value).toBe(value)
+  expect(ident.tokenLiteral()).toBe(value.toString())
+}
+
+function testBooleanLiteral(expect: jest.Expect, bool: Boolean, value: boolean) {
+  expect(bool).toBeInstanceOf(Boolean)
+  expect(bool.value).toBe(value)
+  expect(bool.tokenLiteral()).toBe(value.toString())
+}
+
+function testLiteralExpression(expect: jest.Expect, exp: Expression, expected: unknown) {
+  const type = typeof expected
+  switch (type) {
+    case 'number':
+      return testIntegerLiteral(expect, exp, expected)
+    case 'string':
+      return testIdentifier(expect, exp, expected)
+    case 'boolean':
+      return testBooleanLiteral(expect, exp, expected)
+    default:
+      throw new Error(`type of exp not handled. got ${exp.constructor.name}`)
+  }
+}
+
+function testsInfixExpression(
+  expect: jest.Expect,
+  exp: InfixExpression,
+  left: InfixExpression['left'],
+  operator: string,
+  right: Expression,
+) {
+  expect(exp).toBeInstanceOf(InfixExpression)
+  testLiteralExpression(expect, exp.left, left)
+  expect(exp.operator).toBe(operator)
+  testLiteralExpression(expect, exp.right, right)
 }
 
 function checkParserErrors(p: Parser) {

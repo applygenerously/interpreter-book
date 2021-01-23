@@ -157,6 +157,23 @@ class InfixExpression implements Expression {
   }
 }
 
+class Boolean implements Expression {
+  token: Token
+  value: boolean
+
+  constructor(token: Token, value: boolean) {
+    this.token = token
+    this.value = value
+  }
+  expressionNode() { }
+  tokenLiteral() {
+    return this.token.literal
+  }
+  string() {
+    return this.token.literal
+  }
+}
+
 export {
   ASTNode,
   Expression,
@@ -169,4 +186,5 @@ export {
   IntegerLiteral,
   PrefixExpression,
   InfixExpression,
+  Boolean,
 }

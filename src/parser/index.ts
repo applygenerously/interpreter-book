@@ -45,10 +45,11 @@ export default class Parser {
 
     this.registerPrefix(TokenType.IDENT, this.parseIdentifier)
     this.registerPrefix(TokenType.INT, this.parseIntegerLiteral)
-    
     this.registerPrefix(TokenType.BANG, this.parsePrefixExpression)
     this.registerPrefix(TokenType.MINUS, this.parsePrefixExpression)
-
+    this.registerPrefix(TokenType.TRUE, this.parseBoolean)
+    this.registerPrefix(TokenType.FALSE, this.parseBoolean)
+    
     this.registerInfix(TokenType.EQ, this.parseInfixExpression)
     this.registerInfix(TokenType.NOTEQ, this.parseInfixExpression)
     this.registerInfix(TokenType.LT, this.parseInfixExpression)
@@ -186,6 +187,10 @@ export default class Parser {
       this.errors.push(message)
       throw new Error(message)
     }
+  }
+
+  parseBoolean() {
+    return new ast.Boolean(this.curToken, this.curTokenIs(TokenType.TRUE))
   }
 
   curTokenIs(t: TokenType) {
