@@ -14,7 +14,7 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 var __importStar = (this && this.__importStar) || function (mod) {
     if (mod && mod.__esModule) return mod;
     var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
     __setModuleDefault(result, mod);
     return result;
 };
@@ -53,6 +53,10 @@ var Parser = /** @class */ (function () {
         this.registerPrefix(token_1.TokenType.INT, this.parseIntegerLiteral);
         this.registerPrefix(token_1.TokenType.BANG, this.parsePrefixExpression);
         this.registerPrefix(token_1.TokenType.MINUS, this.parsePrefixExpression);
+        this.registerPrefix(token_1.TokenType.TRUE, this.parseBoolean);
+        this.registerPrefix(token_1.TokenType.FALSE, this.parseBoolean);
+        this.registerPrefix(token_1.TokenType.LPAREN, this.parseGroupedExpression);
+        this.registerPrefix(token_1.TokenType.IF, this.parseIfExpression);
         this.registerInfix(token_1.TokenType.EQ, this.parseInfixExpression);
         this.registerInfix(token_1.TokenType.NOTEQ, this.parseInfixExpression);
         this.registerInfix(token_1.TokenType.LT, this.parseInfixExpression);
@@ -162,8 +166,57 @@ var Parser = /** @class */ (function () {
         catch (e) {
             var message = "Could not parse " + this.curToken.literal + " as number.";
             this.errors.push(message);
+            throw new Error(message);
+        }
+    };
+    Parser.prototype.parseBoolean = function () {
+        return new ast.Boolean(this.curToken, this.curTokenIs(token_1.TokenType.TRUE));
+    };
+    Parser.prototype.parseGroupedExpression = function () {
+        this.nextToken();
+        var expression = this.parseExpression(Precedence.LOWEST);
+        if (!this.expectPeek(token_1.TokenType.RPAREN)) {
+            // syntax error?
             return null;
         }
+        return expression;
+    };
+    Parser.prototype.parseIfExpression = function () {
+        var expression = new ast.IfExpression(this.curToken);
+        if (!this.expectPeek(token_1.TokenType.LPAREN)) {
+            // syntax error
+            return null;
+        }
+        this.nextToken();
+        expression.condition = this.parseExpression(Precedence.LOWEST);
+        if (!this.expectPeek(token_1.TokenType.RPAREN)) {
+            return null;
+        }
+        if (!this.expectPeek(token_1.TokenType.LBRACE)) {
+            return null;
+        }
+        expression.consequence = this.parseBlockStatement();
+        if (this.peekTokenIs(token_1.TokenType.ELSE)) {
+            this.nextToken();
+            if (!this.expectPeek(token_1.TokenType.LBRACE)) {
+                return null;
+            }
+            expression.alternative = this.parseBlockStatement();
+        }
+        return expression;
+    };
+    Parser.prototype.parseBlockStatement = function () {
+        var block = new ast.BlockStatement(this.curToken);
+        block.statements = [];
+        this.nextToken();
+        while (!this.curTokenIs(token_1.TokenType.RBRACE) && !this.curTokenIs(token_1.TokenType.EOF)) {
+            var statement = this.parseStatement();
+            if (statement) {
+                block.statements.push(statement);
+            }
+            this.nextToken();
+        }
+        return block;
     };
     Parser.prototype.curTokenIs = function (t) {
         return this.curToken.type === t;
@@ -173,12 +226,14 @@ var Parser = /** @class */ (function () {
     };
     Parser.prototype.peekPrecedence = function () {
         if (precedences.has(this.peekToken.type)) {
+            // typescript doesn't understand maps
             return precedences.get(this.peekToken.type);
         }
         return Precedence.LOWEST;
     };
     Parser.prototype.curPrecedence = function () {
         if (precedences.has(this.curToken.type)) {
+            // typescript doesn't understand maps
             return precedences.get(this.curToken.type);
         }
         return Precedence.LOWEST;

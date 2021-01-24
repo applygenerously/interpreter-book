@@ -24,6 +24,7 @@ const precedences = new Map<TokenType, Precedence>([
   [TokenType.MINUS, Precedence.SUM],
   [TokenType.SLASH, Precedence.PRODUCT],
   [TokenType.ASTERISK, Precedence.PRODUCT],
+  [TokenType.LPAREN, Precedence.CALL],
 ])
 
 export default class Parser {
@@ -49,6 +50,9 @@ export default class Parser {
     this.registerPrefix(TokenType.MINUS, this.parsePrefixExpression)
     this.registerPrefix(TokenType.TRUE, this.parseBoolean)
     this.registerPrefix(TokenType.FALSE, this.parseBoolean)
+    this.registerPrefix(TokenType.LPAREN, this.parseGroupedExpression)
+    this.registerPrefix(TokenType.IF, this.parseIfExpression)
+    this.registerPrefix(TokenType.FUNCTION, this.parseFunctionLiteral)
     
     this.registerInfix(TokenType.EQ, this.parseInfixExpression)
     this.registerInfix(TokenType.NOTEQ, this.parseInfixExpression)
@@ -58,6 +62,7 @@ export default class Parser {
     this.registerInfix(TokenType.MINUS, this.parseInfixExpression)
     this.registerInfix(TokenType.SLASH, this.parseInfixExpression)
     this.registerInfix(TokenType.ASTERISK, this.parseInfixExpression)
+    this.registerInfix(TokenType.LPAREN, this.parseCallExpression)
   }
 
   nextToken() {
@@ -102,8 +107,11 @@ export default class Parser {
       return null
     }
 
-    // TODO: we're skipping the expressions until we encounter a semicolon
-    while (!this.curTokenIs(TokenType.SEMICOLON)) {
+    this.nextToken()
+
+    statement.value = this.parseExpression(Precedence.LOWEST)
+
+    if (this.peekTokenIs(TokenType.SEMICOLON)) {
       this.nextToken()
     }
 
@@ -115,8 +123,9 @@ export default class Parser {
 
     this.nextToken()
 
-    // TODO: we're skipping the expressions until we encounter a semicolon
-    while (!this.curTokenIs(TokenType.SEMICOLON)) {
+    statement.returnValue = this.parseExpression(Precedence.LOWEST)
+
+    if (this.peekTokenIs(TokenType.SEMICOLON)) {
       this.nextToken()
     }
 
@@ -191,6 +200,135 @@ export default class Parser {
 
   parseBoolean() {
     return new ast.Boolean(this.curToken, this.curTokenIs(TokenType.TRUE))
+  }
+
+  parseGroupedExpression() {
+    this.nextToken()
+    const expression = this.parseExpression(Precedence.LOWEST)
+    if (!this.expectPeek(TokenType.RPAREN)) {
+      // syntax error?
+      return null
+    }
+    return expression
+  }
+
+  parseIfExpression() {
+    const expression = new ast.IfExpression(this.curToken)
+    if (!this.expectPeek(TokenType.LPAREN)) {
+      // syntax error
+      return null
+    }
+    this.nextToken()
+    expression.condition = this.parseExpression(Precedence.LOWEST)
+    if (!this.expectPeek(TokenType.RPAREN)) {
+      return null
+    }
+    if (!this.expectPeek(TokenType.LBRACE)) {
+      return null
+    }
+    expression.consequence = this.parseBlockStatement()
+
+    if (this.peekTokenIs(TokenType.ELSE)) {
+      this.nextToken()
+
+      if (!this.expectPeek(TokenType.LBRACE)) {
+        return null
+      }
+
+      expression.alternative = this.parseBlockStatement()
+    }
+
+    return expression
+  }
+
+  parseBlockStatement() {
+    const block = new ast.BlockStatement(this.curToken)
+    block.statements = []
+
+    this.nextToken()
+
+    while (!this.curTokenIs(TokenType.RBRACE) && !this.curTokenIs(TokenType.EOF)) {
+      const statement = this.parseStatement()
+      if (statement) {
+        block.statements.push(statement)
+      }
+      this.nextToken()
+    }
+
+    return block
+  }
+
+  parseFunctionLiteral() {
+    const literal = new ast.FunctionLiteral(this.curToken)
+
+    if (!this.expectPeek(TokenType.LPAREN)) {
+      return null
+    }
+
+    literal.parameters = this.parseFunctionParameters()
+
+    if (!this.expectPeek(TokenType.LBRACE)) {
+      return null
+    }
+
+    literal.body = this.parseBlockStatement()
+
+    return literal
+  }
+
+  parseFunctionParameters() {
+    const identifiers = [] as ast.Identifier[]
+    if (this.peekTokenIs(TokenType.RPAREN)) {
+      this.nextToken()
+      return identifiers
+    }
+
+    this.nextToken()
+    let ident = new ast.Identifier(this.curToken, this.curToken.literal)
+    identifiers.push(ident)
+
+    while (this.peekTokenIs(TokenType.COMMA)) {
+      this.nextToken()
+      this.nextToken()
+      ident = new ast.Identifier(this.curToken, this.curToken.literal)
+      identifiers.push(ident)
+    }
+
+    if (!this.expectPeek(TokenType.RPAREN)) {
+      return null
+    }
+
+    return identifiers
+  }
+
+  parseCallExpression(fn: Expression) {
+    const expression = new ast.CallExpression(this.curToken, fn)
+    expression.args = this.parseCallArguments()
+    return expression
+  }
+
+  parseCallArguments() {
+    const args = [] as ast.Expression[]
+    if (this.peekTokenIs(TokenType.RPAREN)) {
+      this.nextToken()
+      return args
+    }
+
+    this.nextToken()
+    // first arg, if only one arg
+    args.push(this.parseExpression(Precedence.LOWEST))
+
+    while (this.peekTokenIs(TokenType.COMMA)) {
+      this.nextToken()
+      this.nextToken()
+      args.push(this.parseExpression(Precedence.LOWEST))
+    }
+
+    if (!this.expectPeek(TokenType.RPAREN)) {
+      return null
+    }
+
+    return args
   }
 
   curTokenIs(t: TokenType) {

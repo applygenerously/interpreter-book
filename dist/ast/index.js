@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.InfixExpression = exports.PrefixExpression = exports.IntegerLiteral = exports.ExpressionStatement = exports.ReturnStatement = exports.LetStatement = exports.Program = exports.Identifier = void 0;
+exports.BlockStatement = exports.IfExpression = exports.Boolean = exports.InfixExpression = exports.PrefixExpression = exports.IntegerLiteral = exports.ExpressionStatement = exports.ReturnStatement = exports.LetStatement = exports.Program = exports.Identifier = void 0;
 var Program = /** @class */ (function () {
     function Program() {
         this.statements = [];
@@ -129,3 +129,53 @@ var InfixExpression = /** @class */ (function () {
     return InfixExpression;
 }());
 exports.InfixExpression = InfixExpression;
+var Boolean = /** @class */ (function () {
+    function Boolean(token, value) {
+        this.token = token;
+        this.value = value;
+    }
+    Boolean.prototype.expressionNode = function () { };
+    Boolean.prototype.tokenLiteral = function () {
+        return this.token.literal;
+    };
+    Boolean.prototype.string = function () {
+        return this.token.literal;
+    };
+    return Boolean;
+}());
+exports.Boolean = Boolean;
+var IfExpression = /** @class */ (function () {
+    function IfExpression(token) {
+        this.token = token;
+        // this.condition = condition
+        // this.consequence = consequence
+        // this.alternative = alternative
+    }
+    IfExpression.prototype.expressionNode = function () { };
+    IfExpression.prototype.tokenLiteral = function () {
+        return this.token.literal;
+    };
+    IfExpression.prototype.string = function () {
+        var literal = 'if' + this.condition.string() +
+            this.consequence.string() +
+            (this.alternative ? "else " + this.alternative.string() : '');
+        return literal;
+    };
+    return IfExpression;
+}());
+exports.IfExpression = IfExpression;
+var BlockStatement = /** @class */ (function () {
+    function BlockStatement(token) {
+        this.statements = [];
+        this.token = token;
+    }
+    BlockStatement.prototype.statementNode = function () { };
+    BlockStatement.prototype.tokenLiteral = function () {
+        return this.token.literal;
+    };
+    BlockStatement.prototype.string = function () {
+        return this.statements.map(function (s) { return s.string(); }).join('');
+    };
+    return BlockStatement;
+}());
+exports.BlockStatement = BlockStatement;

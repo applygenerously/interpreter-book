@@ -8,61 +8,50 @@ import {
   PrefixExpression,
   InfixExpression,
   Expression,
-  Boolean
+  Boolean,
+  IfExpression,
+  FunctionLiteral,
+  CallExpression,
 } from '../ast'
 import Parser from './'
 
 describe('parser', () => {
-  test('parses let statements', () => {
-    const input =
-    `let x = 5;
-    let y = 10;
-    let foobar = 838383;`
-
+  // TestLetStatements
+  test.each([
+    ['let x = 5;', 'x', 5],
+    ['let y = true;', 'y', true],
+    ['let foobar = y;', 'foobar', 'y']
+  ])('parses let statements', (input, expectedIdent, expectedVal) => {
     const l = new Lexer(input)
     const p = new Parser(l)
-
     const program = p.parseProgram()
     checkParserErrors(p)
 
-    if (program === null) {
-      fail('parseProgram() returned null')
-    }
-    if (program.statements.length !== 3) {
-      fail(`program.statements does not contain 3 statements, got ${program.statements.length}`)
-    }
-
-    const expected = [
-      'x',
-      'y',
-      'foobar',
-    ]
-
-    for (const [i, e] of expected.entries()) {
-      let statement = program.statements[i] as LetStatement
-      testLetStatement(expect, statement, e)
-    }
+    expect(program.statements.length).toBe(1)
+    const statement = program.statements[0]
+    testLetStatement(expect, statement, expectedIdent)
+    testLiteralExpression(expect, statement.value, expectedVal)
   })
 
-  test('parses return statements', () => {
-    const input =
-    `return 5;
-    return 10;
-    return 993322;`
-
+  // TestReturnStatements
+  test.each([
+    ['return 5;', 5],
+    ['return true;', true],
+    ['return foobar;', 'foobar'],
+  ])('parses return statements', (input, expected) => {
     const l = new Lexer(input)
     const p = new Parser(l)
-
     const program = p.parseProgram()
     checkParserErrors(p)
 
-    expect(program.statements.length).toBe(3)
-    for (const statement of program.statements) {
-      expect(statement).toBeInstanceOf(ReturnStatement)
-      expect(statement.tokenLiteral()).toBe('return')
-    }
+    expect(program.statements.length).toBe(1)
+    const statement = program.statements[0] as ReturnStatement
+    expect(statement).toBeInstanceOf(ReturnStatement)
+    expect(statement.tokenLiteral()).toBe('return')
+    testLiteralExpression(expect, statement.returnValue, expected)
   })
 
+  // TestIdentifierExpressions
   test('parses identifier expressions', () => {
     const input = 'foobar;'
 
@@ -80,6 +69,7 @@ describe('parser', () => {
     expect(identifier?.tokenLiteral()).toBe('foobar')
   })
 
+  // TestIntegerLiteralExpressions
   test('parses integer literal expressions', () => {
     const input = '5;'
 
@@ -97,6 +87,7 @@ describe('parser', () => {
     expect(literal.tokenLiteral()).toBe('5')
   })
 
+  // TestParsingPrefixExpressions
   test.each([
     ['!5;', '!', 5],
     ['-15', '-', 15],
@@ -117,6 +108,7 @@ describe('parser', () => {
     testLiteralExpression(expect, expression.right, value)
   })
 
+  // TestParsingInfixExpressions
   test.each([
     ['5 + 5;', 5, '+', 5],
     ['5 - 5;', 5, '-', 5],
@@ -137,9 +129,10 @@ describe('parser', () => {
 
     expect(program.statements.length).toBe(1)
     const statement = program.statements[0] as ExpressionStatement
-    testsInfixExpression(expect, statement.expression, leftValue, operator, rightValue)
+    testInfixExpression(expect, statement.expression, leftValue, operator, rightValue)
   })
 
+  // TestOperatorPrecedenceParsing
   test.each([
     ['-a * b', '((-a) * b)'],
     ['!-a', '(!(-a))'],
@@ -159,6 +152,14 @@ describe('parser', () => {
     ['false', 'false'],
     ['3 > 5 == false', '((3 > 5) == false)'],
     ['3 < 5 == true', '((3 < 5) == true)'],
+    ['1 + (2 + 3) + 4', '((1 + (2 + 3)) + 4)'],
+    ['(5 + 5) * 2', '((5 + 5) * 2)'],
+    ['2 / (5 + 5)', '(2 / (5 + 5))'],
+    ['-(5 + 5)', '(-(5 + 5))'],
+    ['!(true == true)', '(!(true == true))'],
+    ['a + add(b * c) + d', '((a + add((b * c))) + d)'],
+    ['add(a, b, 1, 2 * 3, 4 + 5, add(6, 7 * 8))', 'add(a, b, 1, (2 * 3), (4 + 5), add(6, (7 * 8)))'],
+    ['add(a + b + c * d / f + g)', 'add((((a + b) + ((c * d) / f)) + g))'],
   ])('parses operators in correct precedence', (input, expected) => {
     const l = new Lexer(input)
     const p = new Parser(l)
@@ -169,6 +170,7 @@ describe('parser', () => {
     expect(actual).toBe(expected)
   })
 
+  // TestBooleanExpression
   test.each([
     ['true', true],
     ['false', false],
@@ -182,6 +184,137 @@ describe('parser', () => {
     const expression = program.statements[0].expression as Boolean
     expect(expression).toBeInstanceOf(Boolean)
     expect(expression.value).toBe(expected)
+  })
+
+  // TestIfExpression
+  test('parses if expressions', () => {
+    const input = 'if (x < y) { x }'
+
+    const l = new Lexer(input)
+    const p = new Parser(l)
+    const program = p.parseProgram()
+    checkParserErrors(p)
+
+    expect(program.statements.length).toBe(1)
+    const statement = program.statements[0] as ExpressionStatement
+    expect(statement).toBeInstanceOf(ExpressionStatement)
+    const expression = statement.expression as IfExpression
+    expect(expression).toBeInstanceOf(IfExpression)
+    testInfixExpression(expect, expression.condition, 'x', '<', 'y')
+    expect(expression.consequence.statements.length).toBe(1)
+    const consequence = expression.consequence.statements[0]
+    expect(consequence).toBeInstanceOf(ExpressionStatement)
+    testIdentifier(expect, consequence.expression, 'x')
+    expect(expression.alternative).toBeFalsy()
+  })
+
+  // TestIfElseExpression
+  test('parses if else expressions', () => {
+    const input = 'if (x < y) { x } else { y }'
+
+    const l = new Lexer(input)
+    const p = new Parser(l)
+    const program = p.parseProgram()
+    checkParserErrors(p)
+
+    expect(program.statements.length).toBe(1)
+    const statement = program.statements[0] as ExpressionStatement
+    expect(statement).toBeInstanceOf(ExpressionStatement)
+    const expression = statement.expression as IfExpression
+    expect(expression).toBeInstanceOf(IfExpression)
+    testInfixExpression(expect, expression.condition, 'x', '<', 'y')
+    expect(expression.consequence.statements.length).toBe(1)
+    const consequence = expression.consequence.statements[0]
+    expect(consequence).toBeInstanceOf(ExpressionStatement)
+    testIdentifier(expect, consequence.expression, 'x')
+    expect(expression.alternative.statements.length).toBe(1)
+    const alternative = expression.alternative.statements[0]
+    expect(alternative).toBeInstanceOf(ExpressionStatement)
+    testIdentifier(expect, alternative.expression, 'y')
+  })
+
+  // TestFunctionLiteralParsing
+  test('parses function literals', () => {
+    const input = 'fn(x, y) { x + y }'
+
+    const l = new Lexer(input)
+    const p = new Parser(l)
+    const program = p.parseProgram()
+    checkParserErrors(p)
+
+    expect(program.statements.length).toBe(1)
+    const statement = program.statements[0]
+    expect(statement).toBeInstanceOf(ExpressionStatement)
+    const fn = statement.expression
+    expect(fn).toBeInstanceOf(FunctionLiteral)
+    expect(fn.parameters.length).toBe(2)
+
+    testLiteralExpression(expect, fn.parameters[0], 'x')
+    testLiteralExpression(expect, fn.parameters[1], 'y')
+
+    expect(fn.body.statements.length).toBe(1)
+    const bodyStatement = fn.body.statements[0]
+    expect(bodyStatement).toBeInstanceOf(ExpressionStatement)
+    testInfixExpression(expect, bodyStatement.expression, 'x', '+', 'y')
+  })
+
+  // TestFunctionParameterParsing
+  test.each([
+    ['fn() {}', []],
+    ['fn(x) {}', ['x']],
+    ['fn(x, y, z) {}', ['x', 'y', 'z']],
+  ])('parses function literal parameters', (input, expected) => {
+    const l = new Lexer(input)
+    const p = new Parser(l)
+    const program = p.parseProgram()
+    checkParserErrors(p)
+
+    const fn = program.statements[0].expression
+    expect(fn.parameters.length).toBe(expected.length)
+    for (const [i, expectedParam] of expected.entries()) {
+      testLiteralExpression(expect, fn.parameters[i], expectedParam)
+    }
+  })
+
+  // TestCallExpressionParsing
+  test('parses call expressions', () => {
+    const input = 'add(1, 2 * 3, 4 + 5);'
+
+    const l = new Lexer(input)
+    const p = new Parser(l)
+    const program = p.parseProgram()
+    checkParserErrors(p)
+
+    expect(program.statements.length).toBe(1)
+    const statement = program.statements[0]
+    expect(statement).toBeInstanceOf(ExpressionStatement)
+    const expression = statement.expression as CallExpression
+    expect(expression).toBeInstanceOf(CallExpression)
+    testIdentifier(expect, expression.fn, 'add')
+    expect(expression.args.length).toBe(3)
+    testLiteralExpression(expect, expression.args[0], 1)
+    testInfixExpression(expect, expression.args[1], 2, '*', 3)
+    testInfixExpression(expect, expression.args[2], 4, '+', 5)
+  })
+
+  // TestCallExpressionParameterParsing
+  test.each([
+    ['add();', 'add', []],
+    ['add(1);', 'add', ['1']],
+    ['add(1, 2 * 3, 4 + 5);', 'add', ['1', '(2 * 3)', '(4 + 5)']],
+  ])('parses call expression parameters', (input, expectedIdent, expectedArgs) => {
+    const l = new Lexer(input)
+    const p = new Parser(l)
+    const program = p.parseProgram()
+    checkParserErrors(p)
+
+    const expression = program.statements[0].expression
+    expect(expression).toBeInstanceOf(CallExpression)
+    testIdentifier(expect, expression.fn, expectedIdent)
+    expect(expression.args.length).toBe(expectedArgs.length)
+    for (const [i, arg] of expectedArgs.entries()) {
+      expect(expression.args[i].string()).toBe(arg)
+    }
   })
 })
 
@@ -224,7 +357,7 @@ function testLiteralExpression(expect: jest.Expect, exp: Expression, expected: u
   }
 }
 
-function testsInfixExpression(
+function testInfixExpression(
   expect: jest.Expect,
   exp: InfixExpression,
   left: InfixExpression['left'],

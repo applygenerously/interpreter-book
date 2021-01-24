@@ -34,6 +34,7 @@ var lexer_1 = __importDefault(require("../lexer"));
 var ast_1 = require("../ast");
 var _1 = __importDefault(require("./"));
 describe('parser', function () {
+    // TestLetStatements
     test('parses let statements', function () {
         var e_1, _a;
         var input = "let x = 5;\n    let y = 10;\n    let foobar = 838383;";
@@ -67,6 +68,7 @@ describe('parser', function () {
             finally { if (e_1) throw e_1.error; }
         }
     });
+    // TestReturnStatements
     test('parses return statements', function () {
         var e_2, _a;
         var input = "return 5;\n    return 10;\n    return 993322;";
@@ -90,6 +92,7 @@ describe('parser', function () {
             finally { if (e_2) throw e_2.error; }
         }
     });
+    // TestIdentifierExpressions
     test('parses identifier expressions', function () {
         var input = 'foobar;';
         var l = new lexer_1.default(input);
@@ -104,6 +107,7 @@ describe('parser', function () {
         expect(identifier.value).toBe('foobar');
         expect(identifier === null || identifier === void 0 ? void 0 : identifier.tokenLiteral()).toBe('foobar');
     });
+    // TestIntegerLiteralExpressions
     test('parses integer literal expressions', function () {
         var input = '5;';
         var l = new lexer_1.default(input);
@@ -118,10 +122,13 @@ describe('parser', function () {
         expect(literal.value).toBe(5);
         expect(literal.tokenLiteral()).toBe('5');
     });
+    // TestParsingPrefixExpressions
     test.each([
         ['!5;', '!', 5],
         ['-15', '-', 15],
-    ])('parses prefix expressions', function (input, operator, integerValue) {
+        ['!true', '!', true],
+        ['!false', '!', false],
+    ])('parses prefix expressions', function (input, operator, value) {
         var l = new lexer_1.default(input);
         var p = new _1.default(l);
         var program = p.parseProgram();
@@ -132,8 +139,9 @@ describe('parser', function () {
         var expression = statement.expression;
         expect(expression).toBeInstanceOf(ast_1.PrefixExpression);
         expect(expression.operator).toBe(operator);
-        testIntegerLiteral(expect, expression.right, integerValue);
+        testLiteralExpression(expect, expression.right, value);
     });
+    // TestParsingInfixExpressions
     test.each([
         ['5 + 5;', 5, '+', 5],
         ['5 - 5;', 5, '-', 5],
@@ -143,6 +151,9 @@ describe('parser', function () {
         ['5 < 5;', 5, '<', 5],
         ['5 == 5;', 5, '==', 5],
         ['5 != 5;', 5, '!=', 5],
+        ['true == true', true, '==', true],
+        ['true != false', true, '!=', false],
+        ['false == false', false, '==', false],
     ])('parses infix expressions', function (input, leftValue, operator, rightValue) {
         var l = new lexer_1.default(input);
         var p = new _1.default(l);
@@ -150,13 +161,9 @@ describe('parser', function () {
         checkParserErrors(p);
         expect(program.statements.length).toBe(1);
         var statement = program.statements[0];
-        expect(statement).toBeInstanceOf(ast_1.ExpressionStatement);
-        var expression = statement.expression;
-        expect(expression).toBeInstanceOf(ast_1.InfixExpression);
-        testIntegerLiteral(expect, expression.left, leftValue);
-        expect(expression.operator).toBe(operator);
-        testIntegerLiteral(expect, expression.right, rightValue);
+        testInfixExpression(expect, statement.expression, leftValue, operator, rightValue);
     });
+    // TestOperatorPrecedenceParsing
     test.each([
         ['-a * b', '((-a) * b)'],
         ['!-a', '(!(-a))'],
@@ -166,12 +173,21 @@ describe('parser', function () {
         ['a * b / c', '((a * b) / c)'],
         ['a + b / c', '(a + (b / c))'],
         ['a + b * c + d / e - f', '(((a + (b * c)) + (d / e)) - f)'],
-        // source shows space no space between expected statements?
+        // source shows no space between expected statements?
         // '(3 + 4)((-5) * 5)'
         ['3 + 4; -5 * 5', '(3 + 4) ((-5) * 5)'],
         ['5 > 4 == 3 < 4', '((5 > 4) == (3 < 4))'],
         ['5 < 4 != 3 > 4', '((5 < 4) != (3 > 4))'],
         ['3 + 4 * 5 == 3 * 1 + 4 * 5', '((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))'],
+        ['true', 'true'],
+        ['false', 'false'],
+        ['3 > 5 == false', '((3 > 5) == false)'],
+        ['3 < 5 == true', '((3 < 5) == true)'],
+        ['1 + (2 + 3) + 4', '((1 + (2 + 3)) + 4)'],
+        ['(5 + 5) * 2', '((5 + 5) * 2)'],
+        ['2 / (5 + 5)', '(2 / (5 + 5))'],
+        ['-(5 + 5)', '(-(5 + 5))'],
+        ['!(true == true)', '(!(true == true))'],
     ])('parses operators in correct precedence', function (input, expected) {
         var l = new lexer_1.default(input);
         var p = new _1.default(l);
@@ -179,6 +195,61 @@ describe('parser', function () {
         checkParserErrors(p);
         var actual = program.string();
         expect(actual).toBe(expected);
+    });
+    // TestBooleanExpression
+    test.each([
+        ['true', true],
+        ['false', false],
+    ])('parses boolean expressions', function (input, expected) {
+        var l = new lexer_1.default(input);
+        var p = new _1.default(l);
+        var program = p.parseProgram();
+        checkParserErrors(p);
+        expect(program.statements.length).toBe(1);
+        var expression = program.statements[0].expression;
+        expect(expression).toBeInstanceOf(ast_1.Boolean);
+        expect(expression.value).toBe(expected);
+    });
+    // TestIfExpression
+    test('parses if expressions', function () {
+        var input = 'if (x < y) { x }';
+        var l = new lexer_1.default(input);
+        var p = new _1.default(l);
+        var program = p.parseProgram();
+        checkParserErrors(p);
+        expect(program.statements.length).toBe(1);
+        var statement = program.statements[0];
+        expect(statement).toBeInstanceOf(ast_1.ExpressionStatement);
+        var expression = statement.expression;
+        expect(expression).toBeInstanceOf(ast_1.IfExpression);
+        testInfixExpression(expect, expression.condition, 'x', '<', 'y');
+        expect(expression.consequence.statements.length).toBe(1);
+        var consequence = expression.consequence.statements[0];
+        expect(consequence).toBeInstanceOf(ast_1.ExpressionStatement);
+        testIdentifier(expect, consequence.expression, 'x');
+        expect(expression.alternative).toBeFalsy();
+    });
+    // TestIfElseExpression
+    test('parses if else expressions', function () {
+        var input = 'if (x < y) { x } else { y }';
+        var l = new lexer_1.default(input);
+        var p = new _1.default(l);
+        var program = p.parseProgram();
+        checkParserErrors(p);
+        expect(program.statements.length).toBe(1);
+        var statement = program.statements[0];
+        expect(statement).toBeInstanceOf(ast_1.ExpressionStatement);
+        var expression = statement.expression;
+        expect(expression).toBeInstanceOf(ast_1.IfExpression);
+        testInfixExpression(expect, expression.condition, 'x', '<', 'y');
+        expect(expression.consequence.statements.length).toBe(1);
+        var consequence = expression.consequence.statements[0];
+        expect(consequence).toBeInstanceOf(ast_1.ExpressionStatement);
+        testIdentifier(expect, consequence.expression, 'x');
+        expect(expression.alternative.statements.length).toBe(1);
+        var alternative = expression.alternative.statements[0];
+        expect(alternative).toBeInstanceOf(ast_1.ExpressionStatement);
+        testIdentifier(expect, alternative.expression, 'y');
     });
 });
 function testLetStatement(expect, statement, expected) {
@@ -191,6 +262,35 @@ function testIntegerLiteral(expect, il, value) {
     expect(il).toBeInstanceOf(ast_1.IntegerLiteral);
     expect(il.value).toBe(value);
     expect(il.tokenLiteral()).toBe(value.toString());
+}
+function testIdentifier(expect, ident, value) {
+    expect(ident).toBeInstanceOf(ast_1.Identifier);
+    expect(ident.value).toBe(value);
+    expect(ident.tokenLiteral()).toBe(value.toString());
+}
+function testBooleanLiteral(expect, bool, value) {
+    expect(bool).toBeInstanceOf(ast_1.Boolean);
+    expect(bool.value).toBe(value);
+    expect(bool.tokenLiteral()).toBe(value.toString());
+}
+function testLiteralExpression(expect, exp, expected) {
+    var type = typeof expected;
+    switch (type) {
+        case 'number':
+            return testIntegerLiteral(expect, exp, expected);
+        case 'string':
+            return testIdentifier(expect, exp, expected);
+        case 'boolean':
+            return testBooleanLiteral(expect, exp, expected);
+        default:
+            throw new Error("type of exp not handled. got " + exp.constructor.name);
+    }
+}
+function testInfixExpression(expect, exp, left, operator, right) {
+    expect(exp).toBeInstanceOf(ast_1.InfixExpression);
+    testLiteralExpression(expect, exp.left, left);
+    expect(exp.operator).toBe(operator);
+    testLiteralExpression(expect, exp.right, right);
 }
 function checkParserErrors(p) {
     var e_3, _a;

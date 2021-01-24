@@ -174,6 +174,88 @@ class Boolean implements Expression {
   }
 }
 
+class IfExpression implements Expression {
+  token: Token // the 'if' token
+  condition!: Expression
+  consequence!: BlockStatement
+  alternative?: BlockStatement
+
+  constructor(
+    token: Token,
+    // condition?: Expression,
+    // consequence?: BlockStatement,
+    // alternative?: BlockStatement,
+  ) {
+    this.token = token
+    // this.condition = condition
+    // this.consequence = consequence
+    // this.alternative = alternative
+  }
+  expressionNode() { }
+  tokenLiteral() {
+    return this.token.literal
+  }
+  string() {
+    const literal = 'if' + this.condition.string() +
+      this.consequence.string() +
+      (this.alternative ? `else ${this.alternative.string()}` : '')
+    return literal
+  }
+}
+
+class BlockStatement implements Statement {
+  token: Token
+  statements: Statement[] = []
+
+  constructor(token: Token) {
+    this.token = token
+  }
+  statementNode() { }
+  tokenLiteral() {
+    return this.token.literal
+  }
+  string() {
+    return this.statements.map(s => s.string()).join('')
+  }
+}
+
+class FunctionLiteral implements Expression {
+  token: Token // the 'fn' token
+  parameters: Identifier[] = []
+  body: BlockStatement
+
+  constructor(token: Token, parameters: Identifier[]) {
+    this.token = token
+    this.parameters = parameters
+  }
+
+  expressionNode() { }
+  tokenLiteral() {
+    return this.token.literal
+  }
+  string() {
+    return `${this.token.literal}(${this.parameters.map(p => p.string()).join(', ')}) ${this.body.string()}`
+  }
+}
+
+class CallExpression implements Expression {
+  token: Token // the '(' token
+  fn: Expression // identifier or function literal
+  args: Expression[] = []
+
+  constructor(token: Token, fn: Expression) {
+    this.token = token
+    this.fn = fn
+  }
+  expressionNode() { }
+  tokenLiteral() {
+    return this.token.literal
+  }
+  string() {
+    return `${this.fn.string()}(${this.args.map(a => a.string()).join(', ')})`
+  }
+}
+
 export {
   ASTNode,
   Expression,
@@ -187,4 +269,8 @@ export {
   PrefixExpression,
   InfixExpression,
   Boolean,
+  IfExpression,
+  BlockStatement,
+  FunctionLiteral,
+  CallExpression,
 }
