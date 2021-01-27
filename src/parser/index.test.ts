@@ -28,7 +28,7 @@ describe('parser', () => {
     checkParserErrors(p)
 
     expect(program.statements.length).toBe(1)
-    const statement = program.statements[0]
+    const statement = program.statements[0] as LetStatement
     testLetStatement(expect, statement, expectedIdent)
     testLiteralExpression(expect, statement.value, expectedVal)
   })
@@ -181,6 +181,7 @@ describe('parser', () => {
     checkParserErrors(p)
 
     expect(program.statements.length).toBe(1)
+    // @ts-ignore
     const expression = program.statements[0].expression as Boolean
     expect(expression).toBeInstanceOf(Boolean)
     expect(expression.value).toBe(expected)
@@ -204,6 +205,7 @@ describe('parser', () => {
     expect(expression.consequence.statements.length).toBe(1)
     const consequence = expression.consequence.statements[0]
     expect(consequence).toBeInstanceOf(ExpressionStatement)
+    // @ts-ignore
     testIdentifier(expect, consequence.expression, 'x')
     expect(expression.alternative).toBeFalsy()
   })
@@ -224,13 +226,14 @@ describe('parser', () => {
     expect(expression).toBeInstanceOf(IfExpression)
     testInfixExpression(expect, expression.condition, 'x', '<', 'y')
     expect(expression.consequence.statements.length).toBe(1)
-    const consequence = expression.consequence.statements[0]
+    const consequence = expression.consequence.statements[0] as ExpressionStatement
     expect(consequence).toBeInstanceOf(ExpressionStatement)
     testIdentifier(expect, consequence.expression, 'x')
-    expect(expression.alternative.statements.length).toBe(1)
-    const alternative = expression.alternative.statements[0]
+    expect(expression.alternative?.statements.length).toBe(1)
+    const alternative = expression.alternative?.statements[0]
     expect(alternative).toBeInstanceOf(ExpressionStatement)
-    testIdentifier(expect, alternative.expression, 'y')
+    // @ts-ignore
+    testIdentifier(expect, alternative?.expression, 'y')
   })
 
   // TestFunctionLiteralParsing
@@ -245,7 +248,8 @@ describe('parser', () => {
     expect(program.statements.length).toBe(1)
     const statement = program.statements[0]
     expect(statement).toBeInstanceOf(ExpressionStatement)
-    const fn = statement.expression
+    // @ts-ignore
+    const fn = statement.expression 
     expect(fn).toBeInstanceOf(FunctionLiteral)
     expect(fn.parameters.length).toBe(2)
 
@@ -269,6 +273,7 @@ describe('parser', () => {
     const program = p.parseProgram()
     checkParserErrors(p)
 
+    // @ts-ignore
     const fn = program.statements[0].expression
     expect(fn.parameters.length).toBe(expected.length)
     for (const [i, expectedParam] of expected.entries()) {
@@ -288,6 +293,7 @@ describe('parser', () => {
     expect(program.statements.length).toBe(1)
     const statement = program.statements[0]
     expect(statement).toBeInstanceOf(ExpressionStatement)
+    // @ts-ignore
     const expression = statement.expression as CallExpression
     expect(expression).toBeInstanceOf(CallExpression)
     testIdentifier(expect, expression.fn, 'add')
@@ -308,7 +314,8 @@ describe('parser', () => {
     const program = p.parseProgram()
     checkParserErrors(p)
 
-    const expression = program.statements[0].expression
+    // @ts-ignore
+    const expression = program.statements[0].expression as CallExpression
     expect(expression).toBeInstanceOf(CallExpression)
     testIdentifier(expect, expression.fn, expectedIdent)
     expect(expression.args.length).toBe(expectedArgs.length)
@@ -318,26 +325,30 @@ describe('parser', () => {
   })
 })
 
-function testLetStatement(expect: jest.Expect, statement: LetStatement, expected: string) {
+// function testLetStatement(expect: jest.Expect, statement: LetStatement, expected: string) {
+function testLetStatement(expect: jest.Expect, statement: any, expected: string) {
   expect(statement.tokenLiteral()).toEqual('let')
   expect(statement).toBeInstanceOf(LetStatement)
   expect(statement.name!.value).toBe(expected)
   expect(statement.name!.tokenLiteral()).toBe(expected)
 }
 
-function testIntegerLiteral(expect: jest.Expect, il: IntegerLiteral, value: number) {
+// function testIntegerLiteral(expect: jest.Expect, il: IntegerLiteral, value: number) {
+function testIntegerLiteral(expect: jest.Expect, il: any, value: number) {
   expect(il).toBeInstanceOf(IntegerLiteral)
   expect(il.value).toBe(value)
   expect(il.tokenLiteral()).toBe(value.toString())
 }
 
-function testIdentifier(expect: jest.Expect, ident: Identifier, value: string) {
+// function testIdentifier(expect: jest.Expect, ident: Identifier, value: string) {
+function testIdentifier(expect: jest.Expect, ident: any, value: string) {
   expect(ident).toBeInstanceOf(Identifier)
   expect(ident.value).toBe(value)
   expect(ident.tokenLiteral()).toBe(value.toString())
 }
 
-function testBooleanLiteral(expect: jest.Expect, bool: Boolean, value: boolean) {
+// function testBooleanLiteral(expect: jest.Expect, bool: Boolean, value: boolean) {
+function testBooleanLiteral(expect: jest.Expect, bool: any, value: boolean) {
   expect(bool).toBeInstanceOf(Boolean)
   expect(bool.value).toBe(value)
   expect(bool.tokenLiteral()).toBe(value.toString())
@@ -347,11 +358,11 @@ function testLiteralExpression(expect: jest.Expect, exp: Expression, expected: u
   const type = typeof expected
   switch (type) {
     case 'number':
-      return testIntegerLiteral(expect, exp, expected)
+      return testIntegerLiteral(expect, exp as IntegerLiteral, expected as number)
     case 'string':
-      return testIdentifier(expect, exp, expected)
+      return testIdentifier(expect, exp as Identifier, expected as string)
     case 'boolean':
-      return testBooleanLiteral(expect, exp, expected)
+      return testBooleanLiteral(expect, exp as Boolean, expected as boolean)
     default:
       throw new Error(`type of exp not handled. got ${exp.constructor.name}`)
   }
@@ -359,10 +370,10 @@ function testLiteralExpression(expect: jest.Expect, exp: Expression, expected: u
 
 function testInfixExpression(
   expect: jest.Expect,
-  exp: InfixExpression,
-  left: InfixExpression['left'],
+  exp: any,
+  left: any,
   operator: string,
-  right: Expression,
+  right: any,
 ) {
   expect(exp).toBeInstanceOf(InfixExpression)
   testLiteralExpression(expect, exp.left, left)

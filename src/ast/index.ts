@@ -48,8 +48,8 @@ class Identifier implements Expression {
 
 class LetStatement implements Statement {
   token: Token
-  name?: Identifier
-  value?: Expression
+  name!: Identifier
+  value!: Expression
 
   constructor(token: Token) {
     this.token = token
@@ -60,13 +60,13 @@ class LetStatement implements Statement {
     return this.token.literal
   }
   string() {
-    return `${this.tokenLiteral()} ${this.name?.string()} = ${this.value?.string()};`
+    return `${this.tokenLiteral()} ${this.name.string()} = ${this.value.string()};`
   }
 } 
 
 class ReturnStatement implements Statement {
   token: Token
-  returnValue?: Expression
+  returnValue!: Expression
 
   constructor(token: Token) {
     this.token = token
@@ -77,7 +77,7 @@ class ReturnStatement implements Statement {
     return this.token.literal
   }
   string() {
-    return `${this.tokenLiteral()} ${this.returnValue?.string()};`
+    return `${this.tokenLiteral()} ${this.returnValue.string()};`
   }
 }
 
@@ -121,7 +121,7 @@ class IntegerLiteral implements Expression {
 class PrefixExpression implements Expression {
   token: Token
   operator: string // '-' or '!'
-  right?: Expression
+  right!: Expression
 
   constructor(token: Token, operator: string) {
     this.token = token
@@ -141,7 +141,7 @@ class InfixExpression implements Expression {
   token: Token
   left: Expression
   operator: string
-  right?: Expression
+  right!: Expression
 
   constructor(token: Token, operator: string, left: Expression) {
     this.token = token
@@ -176,27 +176,21 @@ class Boolean implements Expression {
 
 class IfExpression implements Expression {
   token: Token // the 'if' token
-  condition!: Expression
+  condition!: Expression | null
   consequence!: BlockStatement
   alternative?: BlockStatement
 
   constructor(
     token: Token,
-    // condition?: Expression,
-    // consequence?: BlockStatement,
-    // alternative?: BlockStatement,
   ) {
     this.token = token
-    // this.condition = condition
-    // this.consequence = consequence
-    // this.alternative = alternative
   }
   expressionNode() { }
   tokenLiteral() {
     return this.token.literal
   }
   string() {
-    const literal = 'if' + this.condition.string() +
+    const literal = 'if' + this.condition?.string() +
       this.consequence.string() +
       (this.alternative ? `else ${this.alternative.string()}` : '')
     return literal
@@ -222,11 +216,11 @@ class BlockStatement implements Statement {
 class FunctionLiteral implements Expression {
   token: Token // the 'fn' token
   parameters: Identifier[] = []
-  body: BlockStatement
+  // should we use ts non-null assertion here?
+  body: BlockStatement | null = null
 
-  constructor(token: Token, parameters: Identifier[]) {
+  constructor(token: Token) {
     this.token = token
-    this.parameters = parameters
   }
 
   expressionNode() { }
@@ -234,7 +228,7 @@ class FunctionLiteral implements Expression {
     return this.token.literal
   }
   string() {
-    return `${this.token.literal}(${this.parameters.map(p => p.string()).join(', ')}) ${this.body.string()}`
+    return `${this.token.literal}(${this.parameters.map(p => p.string()).join(', ')}) ${this.body?.string()}`
   }
 }
 

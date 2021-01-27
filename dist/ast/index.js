@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.BlockStatement = exports.IfExpression = exports.Boolean = exports.InfixExpression = exports.PrefixExpression = exports.IntegerLiteral = exports.ExpressionStatement = exports.ReturnStatement = exports.LetStatement = exports.Program = exports.Identifier = void 0;
+exports.CallExpression = exports.FunctionLiteral = exports.BlockStatement = exports.IfExpression = exports.Boolean = exports.InfixExpression = exports.PrefixExpression = exports.IntegerLiteral = exports.ExpressionStatement = exports.ReturnStatement = exports.LetStatement = exports.Program = exports.Identifier = void 0;
 var Program = /** @class */ (function () {
     function Program() {
         this.statements = [];
@@ -44,8 +44,7 @@ var LetStatement = /** @class */ (function () {
         return this.token.literal;
     };
     LetStatement.prototype.string = function () {
-        var _a, _b;
-        return this.tokenLiteral() + " " + ((_a = this.name) === null || _a === void 0 ? void 0 : _a.string()) + " = " + ((_b = this.value) === null || _b === void 0 ? void 0 : _b.string()) + ";";
+        return this.tokenLiteral() + " " + this.name.string() + " = " + this.value.string() + ";";
     };
     return LetStatement;
 }());
@@ -59,8 +58,7 @@ var ReturnStatement = /** @class */ (function () {
         return this.token.literal;
     };
     ReturnStatement.prototype.string = function () {
-        var _a;
-        return this.tokenLiteral() + " " + ((_a = this.returnValue) === null || _a === void 0 ? void 0 : _a.string()) + ";";
+        return this.tokenLiteral() + " " + this.returnValue.string() + ";";
     };
     return ReturnStatement;
 }());
@@ -147,16 +145,14 @@ exports.Boolean = Boolean;
 var IfExpression = /** @class */ (function () {
     function IfExpression(token) {
         this.token = token;
-        // this.condition = condition
-        // this.consequence = consequence
-        // this.alternative = alternative
     }
     IfExpression.prototype.expressionNode = function () { };
     IfExpression.prototype.tokenLiteral = function () {
         return this.token.literal;
     };
     IfExpression.prototype.string = function () {
-        var literal = 'if' + this.condition.string() +
+        var _a;
+        var literal = 'if' + ((_a = this.condition) === null || _a === void 0 ? void 0 : _a.string()) +
             this.consequence.string() +
             (this.alternative ? "else " + this.alternative.string() : '');
         return literal;
@@ -179,3 +175,37 @@ var BlockStatement = /** @class */ (function () {
     return BlockStatement;
 }());
 exports.BlockStatement = BlockStatement;
+var FunctionLiteral = /** @class */ (function () {
+    function FunctionLiteral(token) {
+        this.parameters = [];
+        // should we use ts non-null assertion here?
+        this.body = null;
+        this.token = token;
+    }
+    FunctionLiteral.prototype.expressionNode = function () { };
+    FunctionLiteral.prototype.tokenLiteral = function () {
+        return this.token.literal;
+    };
+    FunctionLiteral.prototype.string = function () {
+        var _a;
+        return this.token.literal + "(" + this.parameters.map(function (p) { return p.string(); }).join(', ') + ") " + ((_a = this.body) === null || _a === void 0 ? void 0 : _a.string());
+    };
+    return FunctionLiteral;
+}());
+exports.FunctionLiteral = FunctionLiteral;
+var CallExpression = /** @class */ (function () {
+    function CallExpression(token, fn) {
+        this.args = [];
+        this.token = token;
+        this.fn = fn;
+    }
+    CallExpression.prototype.expressionNode = function () { };
+    CallExpression.prototype.tokenLiteral = function () {
+        return this.token.literal;
+    };
+    CallExpression.prototype.string = function () {
+        return this.fn.string() + "(" + this.args.map(function (a) { return a.string(); }).join(', ') + ")";
+    };
+    return CallExpression;
+}());
+exports.CallExpression = CallExpression;

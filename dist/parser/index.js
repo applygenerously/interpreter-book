@@ -14,7 +14,7 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 var __importStar = (this && this.__importStar) || function (mod) {
     if (mod && mod.__esModule) return mod;
     var result = {};
-    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
     __setModuleDefault(result, mod);
     return result;
 };
@@ -40,6 +40,7 @@ var precedences = new Map([
     [token_1.TokenType.MINUS, Precedence.SUM],
     [token_1.TokenType.SLASH, Precedence.PRODUCT],
     [token_1.TokenType.ASTERISK, Precedence.PRODUCT],
+    [token_1.TokenType.LPAREN, Precedence.CALL],
 ]);
 var Parser = /** @class */ (function () {
     function Parser(l) {
@@ -57,6 +58,7 @@ var Parser = /** @class */ (function () {
         this.registerPrefix(token_1.TokenType.FALSE, this.parseBoolean);
         this.registerPrefix(token_1.TokenType.LPAREN, this.parseGroupedExpression);
         this.registerPrefix(token_1.TokenType.IF, this.parseIfExpression);
+        this.registerPrefix(token_1.TokenType.FUNCTION, this.parseFunctionLiteral);
         this.registerInfix(token_1.TokenType.EQ, this.parseInfixExpression);
         this.registerInfix(token_1.TokenType.NOTEQ, this.parseInfixExpression);
         this.registerInfix(token_1.TokenType.LT, this.parseInfixExpression);
@@ -65,6 +67,7 @@ var Parser = /** @class */ (function () {
         this.registerInfix(token_1.TokenType.MINUS, this.parseInfixExpression);
         this.registerInfix(token_1.TokenType.SLASH, this.parseInfixExpression);
         this.registerInfix(token_1.TokenType.ASTERISK, this.parseInfixExpression);
+        this.registerInfix(token_1.TokenType.LPAREN, this.parseCallExpression);
     }
     Parser.prototype.nextToken = function () {
         this.curToken = this.peekToken;
@@ -98,10 +101,12 @@ var Parser = /** @class */ (function () {
         }
         statement.name = new ast.Identifier(this.curToken, this.curToken.literal);
         if (!this.expectPeek(token_1.TokenType.ASSIGN)) {
-            return null;
+            // return null
+            throw new Error();
         }
-        // TODO: we're skipping the expressions until we encounter a semicolon
-        while (!this.curTokenIs(token_1.TokenType.SEMICOLON)) {
+        this.nextToken();
+        statement.value = this.parseExpression(Precedence.LOWEST);
+        if (this.peekTokenIs(token_1.TokenType.SEMICOLON)) {
             this.nextToken();
         }
         return statement;
@@ -109,8 +114,8 @@ var Parser = /** @class */ (function () {
     Parser.prototype.parseReturnStatement = function () {
         var statement = new ast.ReturnStatement(this.curToken);
         this.nextToken();
-        // TODO: we're skipping the expressions until we encounter a semicolon
-        while (!this.curTokenIs(token_1.TokenType.SEMICOLON)) {
+        statement.returnValue = this.parseExpression(Precedence.LOWEST);
+        if (this.peekTokenIs(token_1.TokenType.SEMICOLON)) {
             this.nextToken();
         }
         return statement;
@@ -127,7 +132,8 @@ var Parser = /** @class */ (function () {
         var prefix = this.prefixParseFns.get(this.curToken.type);
         if (prefix === undefined) {
             this.noPrefixParserFnError(this.curToken.type);
-            return null;
+            // return null
+            throw new Error();
         }
         var leftExp = prefix();
         while (!this.peekTokenIs(token_1.TokenType.SEMICOLON) && precedence < this.peekPrecedence()) {
@@ -177,7 +183,8 @@ var Parser = /** @class */ (function () {
         var expression = this.parseExpression(Precedence.LOWEST);
         if (!this.expectPeek(token_1.TokenType.RPAREN)) {
             // syntax error?
-            return null;
+            // return null
+            throw new Error();
         }
         return expression;
     };
@@ -185,21 +192,25 @@ var Parser = /** @class */ (function () {
         var expression = new ast.IfExpression(this.curToken);
         if (!this.expectPeek(token_1.TokenType.LPAREN)) {
             // syntax error
-            return null;
+            // return null
+            throw new Error();
         }
         this.nextToken();
         expression.condition = this.parseExpression(Precedence.LOWEST);
         if (!this.expectPeek(token_1.TokenType.RPAREN)) {
-            return null;
+            // return null
+            throw new Error();
         }
         if (!this.expectPeek(token_1.TokenType.LBRACE)) {
-            return null;
+            // return null
+            throw new Error();
         }
         expression.consequence = this.parseBlockStatement();
         if (this.peekTokenIs(token_1.TokenType.ELSE)) {
             this.nextToken();
             if (!this.expectPeek(token_1.TokenType.LBRACE)) {
-                return null;
+                // return null
+                throw new Error();
             }
             expression.alternative = this.parseBlockStatement();
         }
@@ -217,6 +228,66 @@ var Parser = /** @class */ (function () {
             this.nextToken();
         }
         return block;
+    };
+    Parser.prototype.parseFunctionLiteral = function () {
+        var literal = new ast.FunctionLiteral(this.curToken);
+        if (!this.expectPeek(token_1.TokenType.LPAREN)) {
+            // return null
+            throw new Error();
+        }
+        literal.parameters = this.parseFunctionParameters();
+        if (!this.expectPeek(token_1.TokenType.LBRACE)) {
+            // return null
+            throw new Error();
+        }
+        literal.body = this.parseBlockStatement();
+        return literal;
+    };
+    Parser.prototype.parseFunctionParameters = function () {
+        var identifiers = [];
+        if (this.peekTokenIs(token_1.TokenType.RPAREN)) {
+            this.nextToken();
+            return identifiers;
+        }
+        this.nextToken();
+        var ident = new ast.Identifier(this.curToken, this.curToken.literal);
+        identifiers.push(ident);
+        while (this.peekTokenIs(token_1.TokenType.COMMA)) {
+            this.nextToken();
+            this.nextToken();
+            ident = new ast.Identifier(this.curToken, this.curToken.literal);
+            identifiers.push(ident);
+        }
+        if (!this.expectPeek(token_1.TokenType.RPAREN)) {
+            // return null
+            throw new Error();
+        }
+        return identifiers;
+    };
+    Parser.prototype.parseCallExpression = function (fn) {
+        var expression = new ast.CallExpression(this.curToken, fn);
+        expression.args = this.parseCallArguments();
+        return expression;
+    };
+    Parser.prototype.parseCallArguments = function () {
+        var args = [];
+        if (this.peekTokenIs(token_1.TokenType.RPAREN)) {
+            this.nextToken();
+            return args;
+        }
+        this.nextToken();
+        // first arg, if only one arg
+        args.push(this.parseExpression(Precedence.LOWEST));
+        while (this.peekTokenIs(token_1.TokenType.COMMA)) {
+            this.nextToken();
+            this.nextToken();
+            args.push(this.parseExpression(Precedence.LOWEST));
+        }
+        if (!this.expectPeek(token_1.TokenType.RPAREN)) {
+            // return null
+            throw new Error();
+        }
+        return args;
     };
     Parser.prototype.curTokenIs = function (t) {
         return this.curToken.type === t;

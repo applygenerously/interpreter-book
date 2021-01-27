@@ -4,8 +4,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 var readline_1 = __importDefault(require("readline"));
+var parser_1 = __importDefault(require("../parser"));
 var lexer_1 = __importDefault(require("../lexer"));
-var token_1 = require("../token");
 function repl() {
     var rl = readline_1.default.createInterface({
         input: process.stdin,
@@ -15,11 +15,12 @@ function repl() {
     rl.prompt();
     rl.on('line', function (input) {
         var l = new lexer_1.default(input);
-        var tok;
-        while ((tok === null || tok === void 0 ? void 0 : tok.type) !== token_1.TokenType.EOF) {
-            tok = l.nextToken();
-            console.log(tok);
+        var p = new parser_1.default(l);
+        var program = p.parseProgram();
+        if (p.errors.length != 0) {
+            printParserErrors(p.errors);
         }
+        console.log(program.string());
         rl.prompt();
     }).on('close', function () {
         console.log('see ya later!');
@@ -27,3 +28,8 @@ function repl() {
     });
 }
 exports.default = repl;
+function printParserErrors(errors) {
+    for (var error in errors) {
+        console.log("\t" + error + "\n");
+    }
+}

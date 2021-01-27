@@ -35,62 +35,35 @@ var ast_1 = require("../ast");
 var _1 = __importDefault(require("./"));
 describe('parser', function () {
     // TestLetStatements
-    test('parses let statements', function () {
-        var e_1, _a;
-        var input = "let x = 5;\n    let y = 10;\n    let foobar = 838383;";
+    test.each([
+        ['let x = 5;', 'x', 5],
+        ['let y = true;', 'y', true],
+        ['let foobar = y;', 'foobar', 'y']
+    ])('parses let statements', function (input, expectedIdent, expectedVal) {
         var l = new lexer_1.default(input);
         var p = new _1.default(l);
         var program = p.parseProgram();
         checkParserErrors(p);
-        if (program === null) {
-            fail('parseProgram() returned null');
-        }
-        if (program.statements.length !== 3) {
-            fail("program.statements does not contain 3 statements, got " + program.statements.length);
-        }
-        var expected = [
-            'x',
-            'y',
-            'foobar',
-        ];
-        try {
-            for (var _b = __values(expected.entries()), _c = _b.next(); !_c.done; _c = _b.next()) {
-                var _d = __read(_c.value, 2), i = _d[0], e = _d[1];
-                var statement = program.statements[i];
-                testLetStatement(expect, statement, e);
-            }
-        }
-        catch (e_1_1) { e_1 = { error: e_1_1 }; }
-        finally {
-            try {
-                if (_c && !_c.done && (_a = _b.return)) _a.call(_b);
-            }
-            finally { if (e_1) throw e_1.error; }
-        }
+        expect(program.statements.length).toBe(1);
+        var statement = program.statements[0];
+        testLetStatement(expect, statement, expectedIdent);
+        testLiteralExpression(expect, statement.value, expectedVal);
     });
     // TestReturnStatements
-    test('parses return statements', function () {
-        var e_2, _a;
-        var input = "return 5;\n    return 10;\n    return 993322;";
+    test.each([
+        ['return 5;', 5],
+        ['return true;', true],
+        ['return foobar;', 'foobar'],
+    ])('parses return statements', function (input, expected) {
         var l = new lexer_1.default(input);
         var p = new _1.default(l);
         var program = p.parseProgram();
         checkParserErrors(p);
-        expect(program.statements.length).toBe(3);
-        try {
-            for (var _b = __values(program.statements), _c = _b.next(); !_c.done; _c = _b.next()) {
-                var statement = _c.value;
-                expect(statement).toBeInstanceOf(ast_1.ReturnStatement);
-                expect(statement.tokenLiteral()).toBe('return');
-            }
-        }
-        catch (e_2_1) { e_2 = { error: e_2_1 }; }
-        finally {
-            try {
-                if (_c && !_c.done && (_a = _b.return)) _a.call(_b);
-            }
-            finally { if (e_2) throw e_2.error; }
-        }
+        expect(program.statements.length).toBe(1);
+        var statement = program.statements[0];
+        expect(statement).toBeInstanceOf(ast_1.ReturnStatement);
+        expect(statement.tokenLiteral()).toBe('return');
+        testLiteralExpression(expect, statement.returnValue, expected);
     });
     // TestIdentifierExpressions
     test('parses identifier expressions', function () {
@@ -188,6 +161,9 @@ describe('parser', function () {
         ['2 / (5 + 5)', '(2 / (5 + 5))'],
         ['-(5 + 5)', '(-(5 + 5))'],
         ['!(true == true)', '(!(true == true))'],
+        ['a + add(b * c) + d', '((a + add((b * c))) + d)'],
+        ['add(a, b, 1, 2 * 3, 4 + 5, add(6, 7 * 8))', 'add(a, b, 1, (2 * 3), (4 + 5), add(6, (7 * 8)))'],
+        ['add(a + b + c * d / f + g)', 'add((((a + b) + ((c * d) / f)) + g))'],
     ])('parses operators in correct precedence', function (input, expected) {
         var l = new lexer_1.default(input);
         var p = new _1.default(l);
@@ -206,6 +182,7 @@ describe('parser', function () {
         var program = p.parseProgram();
         checkParserErrors(p);
         expect(program.statements.length).toBe(1);
+        // @ts-ignore
         var expression = program.statements[0].expression;
         expect(expression).toBeInstanceOf(ast_1.Boolean);
         expect(expression.value).toBe(expected);
@@ -226,11 +203,13 @@ describe('parser', function () {
         expect(expression.consequence.statements.length).toBe(1);
         var consequence = expression.consequence.statements[0];
         expect(consequence).toBeInstanceOf(ast_1.ExpressionStatement);
+        // @ts-ignore
         testIdentifier(expect, consequence.expression, 'x');
         expect(expression.alternative).toBeFalsy();
     });
     // TestIfElseExpression
     test('parses if else expressions', function () {
+        var _a, _b;
         var input = 'if (x < y) { x } else { y }';
         var l = new lexer_1.default(input);
         var p = new _1.default(l);
@@ -246,28 +225,131 @@ describe('parser', function () {
         var consequence = expression.consequence.statements[0];
         expect(consequence).toBeInstanceOf(ast_1.ExpressionStatement);
         testIdentifier(expect, consequence.expression, 'x');
-        expect(expression.alternative.statements.length).toBe(1);
-        var alternative = expression.alternative.statements[0];
+        expect((_a = expression.alternative) === null || _a === void 0 ? void 0 : _a.statements.length).toBe(1);
+        var alternative = (_b = expression.alternative) === null || _b === void 0 ? void 0 : _b.statements[0];
         expect(alternative).toBeInstanceOf(ast_1.ExpressionStatement);
-        testIdentifier(expect, alternative.expression, 'y');
+        // @ts-ignore
+        testIdentifier(expect, alternative === null || alternative === void 0 ? void 0 : alternative.expression, 'y');
+    });
+    // TestFunctionLiteralParsing
+    test('parses function literals', function () {
+        var input = 'fn(x, y) { x + y }';
+        var l = new lexer_1.default(input);
+        var p = new _1.default(l);
+        var program = p.parseProgram();
+        checkParserErrors(p);
+        expect(program.statements.length).toBe(1);
+        var statement = program.statements[0];
+        expect(statement).toBeInstanceOf(ast_1.ExpressionStatement);
+        // @ts-ignore
+        var fn = statement.expression;
+        expect(fn).toBeInstanceOf(ast_1.FunctionLiteral);
+        expect(fn.parameters.length).toBe(2);
+        testLiteralExpression(expect, fn.parameters[0], 'x');
+        testLiteralExpression(expect, fn.parameters[1], 'y');
+        expect(fn.body.statements.length).toBe(1);
+        var bodyStatement = fn.body.statements[0];
+        expect(bodyStatement).toBeInstanceOf(ast_1.ExpressionStatement);
+        testInfixExpression(expect, bodyStatement.expression, 'x', '+', 'y');
+    });
+    // TestFunctionParameterParsing
+    test.each([
+        ['fn() {}', []],
+        ['fn(x) {}', ['x']],
+        ['fn(x, y, z) {}', ['x', 'y', 'z']],
+    ])('parses function literal parameters', function (input, expected) {
+        var e_1, _a;
+        var l = new lexer_1.default(input);
+        var p = new _1.default(l);
+        var program = p.parseProgram();
+        checkParserErrors(p);
+        // @ts-ignore
+        var fn = program.statements[0].expression;
+        expect(fn.parameters.length).toBe(expected.length);
+        try {
+            for (var _b = __values(expected.entries()), _c = _b.next(); !_c.done; _c = _b.next()) {
+                var _d = __read(_c.value, 2), i = _d[0], expectedParam = _d[1];
+                testLiteralExpression(expect, fn.parameters[i], expectedParam);
+            }
+        }
+        catch (e_1_1) { e_1 = { error: e_1_1 }; }
+        finally {
+            try {
+                if (_c && !_c.done && (_a = _b.return)) _a.call(_b);
+            }
+            finally { if (e_1) throw e_1.error; }
+        }
+    });
+    // TestCallExpressionParsing
+    test('parses call expressions', function () {
+        var input = 'add(1, 2 * 3, 4 + 5);';
+        var l = new lexer_1.default(input);
+        var p = new _1.default(l);
+        var program = p.parseProgram();
+        checkParserErrors(p);
+        expect(program.statements.length).toBe(1);
+        var statement = program.statements[0];
+        expect(statement).toBeInstanceOf(ast_1.ExpressionStatement);
+        // @ts-ignore
+        var expression = statement.expression;
+        expect(expression).toBeInstanceOf(ast_1.CallExpression);
+        testIdentifier(expect, expression.fn, 'add');
+        expect(expression.args.length).toBe(3);
+        testLiteralExpression(expect, expression.args[0], 1);
+        testInfixExpression(expect, expression.args[1], 2, '*', 3);
+        testInfixExpression(expect, expression.args[2], 4, '+', 5);
+    });
+    // TestCallExpressionParameterParsing
+    test.each([
+        ['add();', 'add', []],
+        ['add(1);', 'add', ['1']],
+        ['add(1, 2 * 3, 4 + 5);', 'add', ['1', '(2 * 3)', '(4 + 5)']],
+    ])('parses call expression parameters', function (input, expectedIdent, expectedArgs) {
+        var e_2, _a;
+        var l = new lexer_1.default(input);
+        var p = new _1.default(l);
+        var program = p.parseProgram();
+        checkParserErrors(p);
+        // @ts-ignore
+        var expression = program.statements[0].expression;
+        expect(expression).toBeInstanceOf(ast_1.CallExpression);
+        testIdentifier(expect, expression.fn, expectedIdent);
+        expect(expression.args.length).toBe(expectedArgs.length);
+        try {
+            for (var _b = __values(expectedArgs.entries()), _c = _b.next(); !_c.done; _c = _b.next()) {
+                var _d = __read(_c.value, 2), i = _d[0], arg = _d[1];
+                expect(expression.args[i].string()).toBe(arg);
+            }
+        }
+        catch (e_2_1) { e_2 = { error: e_2_1 }; }
+        finally {
+            try {
+                if (_c && !_c.done && (_a = _b.return)) _a.call(_b);
+            }
+            finally { if (e_2) throw e_2.error; }
+        }
     });
 });
+// function testLetStatement(expect: jest.Expect, statement: LetStatement, expected: string) {
 function testLetStatement(expect, statement, expected) {
     expect(statement.tokenLiteral()).toEqual('let');
     expect(statement).toBeInstanceOf(ast_1.LetStatement);
     expect(statement.name.value).toBe(expected);
     expect(statement.name.tokenLiteral()).toBe(expected);
 }
+// function testIntegerLiteral(expect: jest.Expect, il: IntegerLiteral, value: number) {
 function testIntegerLiteral(expect, il, value) {
     expect(il).toBeInstanceOf(ast_1.IntegerLiteral);
     expect(il.value).toBe(value);
     expect(il.tokenLiteral()).toBe(value.toString());
 }
+// function testIdentifier(expect: jest.Expect, ident: Identifier, value: string) {
 function testIdentifier(expect, ident, value) {
     expect(ident).toBeInstanceOf(ast_1.Identifier);
     expect(ident.value).toBe(value);
     expect(ident.tokenLiteral()).toBe(value.toString());
 }
+// function testBooleanLiteral(expect: jest.Expect, bool: Boolean, value: boolean) {
 function testBooleanLiteral(expect, bool, value) {
     expect(bool).toBeInstanceOf(ast_1.Boolean);
     expect(bool.value).toBe(value);
