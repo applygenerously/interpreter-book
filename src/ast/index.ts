@@ -14,7 +14,8 @@ interface Expression extends ASTNode {
 }
 
 export default class Program implements ASTNode {
-  statements: Statement[] = []
+  // statements: Statement[] = []
+  statements: (LetStatement | ExpressionStatement | ReturnStatement)[] = []
 
   tokenLiteral() {
     if (this.statements.length > 0) {

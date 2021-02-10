@@ -98,7 +98,8 @@ export default class Parser {
   parseLetStatement() {
     const statement = new ast.LetStatement(this.curToken)
     if (!this.expectPeek(TokenType.IDENT)) {
-      return null
+      // return null
+      throw new Error()
     }
 
     statement.name = new ast.Identifier(this.curToken, this.curToken.literal)
@@ -383,6 +384,7 @@ export default class Parser {
   peekError(t: TokenType) {
     const msg = `Expected next token to be ${t}, got ${this.peekToken.type} instead.`
     this.errors.push(msg)
+    // throw new Error(msg)
   }
 
   registerPrefix(t: TokenType, fn: prefixParseFn) {
