@@ -104,7 +104,8 @@ class ExpressionStatement implements Statement {
 
 class IntegerLiteral implements Expression {
   token: Token
-  value: number | null = null
+  // value: number | null = null
+  value!: number
 
   constructor(token: Token) {
     this.token = token
@@ -251,6 +252,24 @@ class CallExpression implements Expression {
   }
 }
 
+type Node =
+  | ASTNode
+  | Expression
+  | Statement
+  | Identifier
+  | Program
+  | LetStatement
+  | ReturnStatement
+  | ExpressionStatement
+  | IntegerLiteral
+  | PrefixExpression
+  | InfixExpression
+  | Boolean
+  | IfExpression
+  | BlockStatement
+  | FunctionLiteral
+  | CallExpression
+
 export {
   ASTNode,
   Expression,
@@ -268,4 +287,5 @@ export {
   BlockStatement,
   FunctionLiteral,
   CallExpression,
+  Node,
 }

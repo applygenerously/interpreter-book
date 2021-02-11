@@ -1,6 +1,7 @@
 import readline from 'readline'
 import Parser from '../parser'
 import Lexer from '../lexer'
+import evaluate from '../evaluator'
 
 export default function repl() {
   const rl = readline.createInterface({
@@ -20,7 +21,10 @@ export default function repl() {
       printParserErrors(p.errors)
     }
 
-    console.log(program.string())
+    const evaluated = evaluate(program)
+    if (evaluated !== null) {
+      console.log(evaluated.inspect())
+    }
 
     rl.prompt()
   }).on('close', () => {
