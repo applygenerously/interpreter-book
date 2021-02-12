@@ -3,9 +3,9 @@ import * as object from '../object'
 
 const TRUE = new object.Boolean(true)
 const FALSE = new object.Boolean(false)
-const NULL = new object.Null()
+export const NULL = new object.Null()
 
-export default function evaluate(node: ast.Node | null): object.Object | null {
+export default function evaluate(node: ast.Node): object.Object {
   // typescript doesn't like switch statement   
   if (node?.constructor === ast.Boolean) {
     return nativeBoolToBooleanObject(node.value)
@@ -24,15 +24,21 @@ export default function evaluate(node: ast.Node | null): object.Object | null {
     return evalPrefixExpression(node.operator, right)
   }
 
+  if (node?.constructor === ast.InfixExpression) {
+    const left = evaluate(node.left)
+    const right = evaluate(node.right)
+    return evalInfixExpression(node.operator, left, right)
+  }
+
   if (node?.constructor === ast.Program) {
     return evalStatements(node.statements)
   }
 
-  return null
+  return NULL
 }
 
-function evalStatements(statements: ast.Program['statements']): object.Object | null {
-  let result = null
+function evalStatements(statements: ast.Program['statements']): object.Object {
+  let result: object.Object = NULL
 
   for (const statement of statements) {
     result = evaluate(statement)
@@ -74,5 +80,50 @@ function evalMinusPrefixOperatorExpression(right: object.Object) {
     return NULL
   }
 
-  return new object.Integer(-right.value)
+  return new object.Integer(-(right as object.Integer).value)
+}
+
+function evalInfixExpression(operator: string, left: object.Object, right: object.Object) {
+  // if left and right operands are numbers
+  if (left.type === object.ObjectType.INTEGER_OBJ && right.type === object.ObjectType.INTEGER_OBJ) {
+    return evalIntegerInfixExpression(operator, (left as object.Integer), (right as object.Integer))
+  }
+
+  // if left and right operands are booleans
+  if (operator === '==') {
+    return nativeBoolToBooleanObject(left === right)
+  }
+
+  if (operator === '!=') {
+    return nativeBoolToBooleanObject(left !== right)
+  }
+
+  // handle other values later
+  return NULL
+}
+
+function evalIntegerInfixExpression(operator: string, left: object.Integer, right: object.Integer) {
+  const leftVal = left.value
+  const rightVal = right.value
+
+  switch (operator) {
+    case '+':
+      return new object.Integer(leftVal + rightVal)
+    case '-':
+      return new object.Integer(leftVal - rightVal)
+    case '*':
+      return new object.Integer(leftVal * rightVal)
+    case '/':
+      return new object.Integer(leftVal / rightVal)
+    case '<':
+      return nativeBoolToBooleanObject(leftVal < rightVal)
+    case '>':
+      return nativeBoolToBooleanObject(leftVal > rightVal)
+    case '==':
+      return nativeBoolToBooleanObject(leftVal === rightVal)
+    case '!=':
+      return nativeBoolToBooleanObject(leftVal !== rightVal)
+    default:
+      return NULL
+  }
 }

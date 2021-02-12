@@ -84,7 +84,8 @@ class ReturnStatement implements Statement {
 
 class ExpressionStatement implements Statement {
   token: Token
-  expression: Expression | null = null
+  // expression: Expression | null = null
+  expression!: Expression
 
   constructor(token: Token) {
     this.token = token
@@ -178,7 +179,8 @@ class Boolean implements Expression {
 
 class IfExpression implements Expression {
   token: Token // the 'if' token
-  condition!: Expression | null
+  // condition: Expression | null
+  condition!: Expression
   consequence!: BlockStatement
   alternative?: BlockStatement
 
@@ -219,7 +221,8 @@ class FunctionLiteral implements Expression {
   token: Token // the 'fn' token
   parameters: Identifier[] = []
   // should we use ts non-null assertion here?
-  body: BlockStatement | null = null
+  // body: BlockStatement | null = null
+  body!: BlockStatement
 
   constructor(token: Token) {
     this.token = token
