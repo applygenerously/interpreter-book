@@ -31,19 +31,50 @@ export default function evaluate(node: ast.Node): object.Object {
   }
 
   if (node?.constructor === ast.Program) {
-    return evalStatements(node.statements)
+    return evalProgram(node)
+  }
+
+  if (node?.constructor === ast.IfExpression) {
+    return evalIfExpression(node)
+  }
+
+  if (node?.constructor === ast.ReturnStatement) {
+    const value = evaluate(node.returnValue)
+    return new object.ReturnValue(value)
+  }
+
+  if (node?.constructor === ast.BlockStatement) {
+    return evalBlockStatement(node)
   }
 
   return NULL
 }
 
-function evalStatements(statements: ast.Program['statements']): object.Object {
+function evalProgram(program: ast.Program) {
   let result: object.Object = NULL
 
-  for (const statement of statements) {
+  for (const statement of program.statements) {
     result = evaluate(statement)
+
+    if (result.constructor === object.ReturnValue) {
+      return result.value
+    }
   }
 
+  return result
+}
+
+function evalBlockStatement(block: ast.BlockStatement) {
+  let result: object.Object = NULL
+
+  for (const statement of block.statements) {
+    result = evaluate(statement)
+
+    if (result != null && result.type === object.ObjectType.RETURN_VALUE_OBJ) {
+      return result
+    }
+  }
+  
   return result
 }
 
@@ -125,5 +156,30 @@ function evalIntegerInfixExpression(operator: string, left: object.Integer, righ
       return nativeBoolToBooleanObject(leftVal !== rightVal)
     default:
       return NULL
+  }
+}
+
+function evalIfExpression(node: ast.IfExpression) {
+  const condition = evaluate(node.condition)
+
+  if (isTruthy(condition)) {
+    return evaluate(node.consequence)
+  } else if (node.alternative) {
+    return evaluate(node.alternative)
+  } else {
+    return NULL
+  }
+}
+
+function isTruthy(obj: object.Object) {
+  switch (obj) {
+    case NULL:
+      return false
+    case TRUE:
+      return true
+    case FALSE:
+      return false
+    default:
+      return true
   }
 }

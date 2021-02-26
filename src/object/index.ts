@@ -1,7 +1,8 @@
 enum ObjectType {
   INTEGER_OBJ = 'INTEGER',
   BOOLEAN_OBJ = 'BOOLEAN',
-  NULL_OBJ = 'NULL'
+  NULL_OBJ = 'NULL',
+  RETURN_VALUE_OBJ = 'RETURN_VALUE_OBJ',
 }
 
 class Integer {
@@ -38,7 +39,21 @@ class Null {
   }
 }
 
-type Object = Integer | Boolean | Null
+type Object = Integer | Boolean | Null | ReturnValue
+
+class ReturnValue {
+  type = ObjectType.RETURN_VALUE_OBJ
+  value: Object
+
+  constructor(value: Object) {
+    this.value = value
+  }
+
+  inspect() {
+    return this.value.inspect()
+  }
+}
+
 
 export {
   Integer,
@@ -46,4 +61,5 @@ export {
   Null,
   Object,
   ObjectType,
+  ReturnValue,
 }

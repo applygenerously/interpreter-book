@@ -75,12 +75,32 @@ describe('evaluator', () => {
     ['if (1 > 2) { 10 } else { 20 }', 20],
     ['if (1 < 2) { 10 } else { 20 }', 10],
   ])('evaluates conditional expressions', (input, expected) => {
-    const evaluated = testEval(input)
+    const evaluated = testEval(input) 
     if (typeof expected === 'number') {
-      testIntegerObject(expect, evaluated, expected)
+      testIntegerObject(expect, (evaluated as object.Integer), expected)
     } else {
-      testNullObject(expect, evaluated)
+      testNullObject(expect, (evaluated as object.Null))
     }
+  })
+
+  // TestReturnStatements
+  test.each([
+    ['return 10;', 10],
+    ['return 10; 9;', 10],
+    ['return 2 * 7; 9;', 14],
+    ['9; return 2 + 3; 9;', 5],
+    [
+      `if (10 > 1) {
+        if (10 > 1) {
+          return 10;
+        }
+        return 1;
+      }`,
+      10
+    ]
+  ])('evaluates return statements', (input, expected) => {
+    const evaluated = testEval(input) as object.Integer
+    testIntegerObject(expect, evaluated, expected)
   })
 })
 

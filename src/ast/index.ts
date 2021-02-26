@@ -203,7 +203,8 @@ class IfExpression implements Expression {
 
 class BlockStatement implements Statement {
   token: Token
-  statements: Statement[] = []
+  // statements: Statement[] = []
+  statements: (LetStatement | ExpressionStatement | ReturnStatement)[] = []
 
   constructor(token: Token) {
     this.token = token
