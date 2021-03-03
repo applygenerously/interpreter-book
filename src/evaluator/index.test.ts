@@ -97,7 +97,7 @@ describe('evaluator', () => {
         return 1;
       }`,
       10
-    ]
+    ],
   ])('evaluates return statements', (input, expected) => {
     const integerObj = testEval(input) as object.Integer
     testIntegerObject(expect, integerObj, expected)
@@ -121,11 +121,22 @@ describe('evaluator', () => {
       }`,
       'unkown operator: BOOLEAN - BOOLEAN'
     ],
+    ['foobar', 'identifier not found: foobar'],
   ])('handles errors', (input, expected) => {
     const errorObj = testEval(input) as object.Error
     expect(errorObj).toBeInstanceOf(object.Error)
     expect(errorObj.message).toBe(expected)
+  })
 
+  // TestLetStatements
+  test.each([
+    ['let a = 5; a;', 5],
+    ['let a = 5 * 5; a;', 25],
+    ['let a = 5; let b = a; b;', 5],
+    ['let a = 5; let b = a; let c = a + b + 5; c;', 15],
+  ])('evaluates let statements', (input, expected) => {
+    const evaluated = testEval(input)
+    testIntegerObject(expect, (evaluated as object.Integer), expected)
   })
 })
 
@@ -133,8 +144,9 @@ function testEval(input: string) {
   const l = new Lexer(input)
   const p = new Parser(l)
   const program = p.parseProgram()
+  const env = new object.Environment()
 
-  return evaluate(program)
+  return evaluate(program, env)
 }
 
 function testIntegerObject(expect: jest.Expect, obj: object.Integer, expected: number | null) {

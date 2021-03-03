@@ -14,6 +14,7 @@ class Integer {
     this.value = value
   }
 
+  // @ts-ignore
   inspect() {
     return this.value
   }
@@ -48,6 +49,7 @@ class ReturnValue {
     this.value = value
   }
   
+  // @ts-ignore
   inspect() {
     return this.value.inspect()
   }
@@ -66,6 +68,23 @@ class Error {
   }
 }
 
+class Environment {
+  store: Map<string, Object> = new Map()
+
+  get(name: string) {
+    return this.store.get(name)
+  }
+
+  set(name: string, val: Object) {
+    this.store.set(name, val)
+    return val
+  }
+
+  has(name: string) {
+    return this.store.has(name)
+  }
+}
+
 type Object = Integer | Boolean | Null | Error | ReturnValue
 
 export {
@@ -76,4 +95,5 @@ export {
   ObjectType,
   ReturnValue,
   Error,
+  Environment,
 }

@@ -5,7 +5,7 @@ const TRUE = new object.Boolean(true)
 const FALSE = new object.Boolean(false)
 export const NULL = new object.Null()
 
-export default function evaluate(node: ast.Node): object.Object {
+export default function evaluate(node: ast.Node, env: object.Environment): object.Object {
   // typescript doesn't like switch statement   
   if (node?.constructor === ast.Boolean) {
     return nativeBoolToBooleanObject(node.value)
@@ -16,11 +16,24 @@ export default function evaluate(node: ast.Node): object.Object {
   }
 
   if (node?.constructor === ast.ExpressionStatement) {
-    return evaluate(node.expression)
+    return evaluate(node.expression, env)
+  }
+
+  if (node?.constructor === ast.LetStatement) {
+    const value = evaluate(node.value, env)
+    if (isError(value)) {
+      return value
+    }
+
+    env.set(node.name.value, value)
+  }
+
+  if (node?.constructor === ast.Identifier) {
+    return evalIdentifier(node, env)
   }
 
   if (node?.constructor === ast.PrefixExpression) {
-    const right = evaluate(node.right)
+    const right = evaluate(node.right, env)
     if (isError(right)) {
       return right
     }
@@ -29,12 +42,12 @@ export default function evaluate(node: ast.Node): object.Object {
   }
 
   if (node?.constructor === ast.InfixExpression) {
-    const left = evaluate(node.left)
+    const left = evaluate(node.left, env)
     if (isError(left)) {
       return left
     }
 
-    const right = evaluate(node.right)
+    const right = evaluate(node.right, env)
     if (isError(right)) {
       return right
     }
@@ -43,15 +56,15 @@ export default function evaluate(node: ast.Node): object.Object {
   }
 
   if (node?.constructor === ast.Program) {
-    return evalProgram(node)
+    return evalProgram(node, env)
   }
 
   if (node?.constructor === ast.IfExpression) {
-    return evalIfExpression(node)
+    return evalIfExpression(node, env)
   }
 
   if (node?.constructor === ast.ReturnStatement) {
-    const value = evaluate(node.returnValue)
+    const value = evaluate(node.returnValue, env)
     if (isError(value)) {
       return value
     }
@@ -60,17 +73,17 @@ export default function evaluate(node: ast.Node): object.Object {
   }
 
   if (node?.constructor === ast.BlockStatement) {
-    return evalBlockStatement(node)
+    return evalBlockStatement(node, env)
   }
 
   return NULL
 }
 
-function evalProgram(program: ast.Program) {
+function evalProgram(program: ast.Program, env: object.Environment) {
   let result: object.Object = NULL
 
   for (const statement of program.statements) {
-    result = evaluate(statement)
+    result = evaluate(statement, env)
 
     if (result.constructor === object.ReturnValue) {
       return result.value
@@ -84,11 +97,11 @@ function evalProgram(program: ast.Program) {
   return result
 }
 
-function evalBlockStatement(block: ast.BlockStatement) {
+function evalBlockStatement(block: ast.BlockStatement, env: object.Environment) {
   let result: object.Object = NULL
 
   for (const statement of block.statements) {
-    result = evaluate(statement)
+    result = evaluate(statement, env)
 
     if (
       result != null &&
@@ -186,20 +199,29 @@ function evalIntegerInfixExpression(operator: string, left: object.Integer, righ
   }
 }
 
-function evalIfExpression(node: ast.IfExpression) {     
-  const condition = evaluate(node.condition)
+function evalIfExpression(node: ast.IfExpression, env: object.Environment) {
+  const condition = evaluate(node.condition, env)
 
   if (isError(condition)) {
     return condition
   }
 
   if (isTruthy(condition)) {
-    return evaluate(node.consequence)
+    return evaluate(node.consequence, env)
   } else if (node.alternative) {
-    return evaluate(node.alternative)
+    return evaluate(node.alternative, env)
   } else {
     return NULL
   }
+}
+
+function evalIdentifier(node: ast.Identifier, env: object.Environment): object.Object {
+  const isBound = env.has(node.value)
+  if (!isBound) {
+    return new object.Error(`identifier not found: ${node.value}`)
+  }
+  // @ts-ignore
+  return env.get(node.value)
 }
 
 function isTruthy(obj: object.Object) {
@@ -215,7 +237,7 @@ function isTruthy(obj: object.Object) {
   }
 }
 
-function isError(obj) {
+function isError(obj: object.Object) {
   if (obj !== null) {
     return obj.type === object.ObjectType.ERROR_OBJ
   }

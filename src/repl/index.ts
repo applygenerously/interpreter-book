@@ -2,8 +2,11 @@ import readline from 'readline'
 import Parser from '../parser'
 import Lexer from '../lexer'
 import evaluate from '../evaluator'
+import { Environment } from '../object'
 
 export default function repl() {
+  const env = new Environment()
+
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
@@ -21,7 +24,7 @@ export default function repl() {
       printParserErrors(p.errors)
     }
 
-    const evaluated = evaluate(program)
+    const evaluated = evaluate(program, env)
     if (evaluated !== null) {
       console.log(evaluated.inspect())
     }
