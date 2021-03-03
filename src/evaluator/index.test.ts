@@ -22,8 +22,8 @@ describe('evaluator', () => {
     ['3 * (3 * 3) + 10', 37],
     ['(5 + 10 * 2 + 15 / 3) * 2 + -10', 50],
   ])('evaluates integer expressions', (input, expected) => {
-    const evaluated = testEval(input) as object.Integer
-    testIntegerObject(expect, evaluated, expected)
+    const integerObj = testEval(input) as object.Integer
+    testIntegerObject(expect, integerObj, expected)
   })
 
   // TestEvalBooleanExpression
@@ -48,8 +48,8 @@ describe('evaluator', () => {
     ['(1 > 2) == true', false],
     ['(1 > 2) == false', true],
   ])('evaluates boolean expressions', (input, expected) => {
-    const evaluated = testEval(input) as object.Boolean
-    testBooleanObject(expect, evaluated, expected)
+    const booleanObj = testEval(input) as object.Boolean
+    testBooleanObject(expect, booleanObj, expected)
   })
 
   // TestBangOperator
@@ -61,8 +61,8 @@ describe('evaluator', () => {
     ['!!true', true],
     ['!!false', false],
   ])('evaluates bang operators', (input, expected) => {
-    const evaluated = testEval(input) as object.Boolean
-    testBooleanObject(expect, evaluated, expected)
+    const booleanObj = testEval(input) as object.Boolean
+    testBooleanObject(expect, booleanObj, expected)
   })
 
   // TestIfElseExpressions
@@ -99,8 +99,33 @@ describe('evaluator', () => {
       10
     ]
   ])('evaluates return statements', (input, expected) => {
-    const evaluated = testEval(input) as object.Integer
-    testIntegerObject(expect, evaluated, expected)
+    const integerObj = testEval(input) as object.Integer
+    testIntegerObject(expect, integerObj, expected)
+  })
+
+  // TestErrorHandling
+  test.each([
+    ['5 + true;', 'type mismatch: INTEGER + BOOLEAN'],
+    ['5 + true; 5;', 'type mismatch: INTEGER + BOOLEAN'],
+    ['-true;', 'unkown operator: -BOOLEAN'],
+    ['true + false;', 'unkown operator: BOOLEAN + BOOLEAN'],
+    ['5; true + false; 5;', 'unkown operator: BOOLEAN + BOOLEAN'],
+    ['if (10 > 1) { true + false; }', 'unkown operator: BOOLEAN + BOOLEAN'],
+    ['if (10 > 1) { true + false; }', 'unkown operator: BOOLEAN + BOOLEAN'],
+    [
+      `if (10 > 1) {
+        if (10 > 1) {
+          return true - false;
+        }
+        return 1;
+      }`,
+      'unkown operator: BOOLEAN - BOOLEAN'
+    ],
+  ])('handles errors', (input, expected) => {
+    const errorObj = testEval(input) as object.Error
+    expect(errorObj).toBeInstanceOf(object.Error)
+    expect(errorObj.message).toBe(expected)
+
   })
 })
 
