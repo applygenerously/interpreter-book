@@ -138,6 +138,29 @@ describe('evaluator', () => {
     const evaluated = testEval(input)
     testIntegerObject(expect, (evaluated as object.Integer), expected)
   })
+
+  // TestFunctionObject
+  test('evaluates functions', () => {
+    const input = 'fn(x) { x + 2; };'
+    const fn = testEval(input) as object.Function
+    expect(fn).toBeInstanceOf(object.Function)
+    expect(fn.parameters.length).toBe(1)
+    expect(fn.parameters[0].string()).toBe('x')
+    expect(fn.body.string()).toBe('(x + 2)')
+  })
+
+  // TestFunctionApplication
+  test.each([
+    ['let identity = fn(x) { x; }; identity(5);', 5],
+    ['let identity = fn(x) { return x; }; identity(5);', 5],
+    ['let double = fn(x) { x * 2 }; double(5);', 10],
+    ['let add = fn(x, y) { x + y }; add(5, 6);', 11],
+    ['let add = fn(x, y) { x + y }; add(5 + 5, add(5, 5));', 20],
+    ['fn(x) { x; }(5)', 5],
+  ])('evaluates function application', (input, expected) => {
+    const evaluated = testEval(input)
+    testIntegerObject(expect, (evaluated as object.Integer), expected)
+  })
 })
 
 function testEval(input: string) {

@@ -28,6 +28,24 @@ export default function evaluate(node: ast.Node, env: object.Environment): objec
     env.set(node.name.value, value)
   }
 
+  if (node?.constructor === ast.FunctionLiteral) {
+    return new object.Function(node.parameters, node.body, env)
+  }
+
+  if (node?.constructor === ast.CallExpression) {
+    const fn = evaluate(node.fn, env) as object.Function
+    if (isError(fn)) {
+      return fn
+    }
+
+    const args = evalExpressions(node.args, env)
+    if (args.length === 1 && isError(args[0])) {
+      return args[0]
+    }
+
+    return applyFunction(fn, args)
+  }
+
   if (node?.constructor === ast.Identifier) {
     return evalIdentifier(node, env)
   }
@@ -222,6 +240,46 @@ function evalIdentifier(node: ast.Identifier, env: object.Environment): object.O
   }
   // @ts-ignore
   return env.get(node.value)
+}
+
+function evalExpressions(exps: ast.Expression[], env: object.Environment) {
+  const result = []
+  for (const e of exps) {
+    const evaluated = evaluate(e, env)
+    if (isError(evaluated)) {
+      return [evaluated]
+    }
+    result.push(evaluated)
+  }
+  return result
+}
+
+function applyFunction(fn: object.Function, args: object.Object[]) {
+  if (fn.constructor !== object.Function) {
+    return new object.Error(`not a function: ${fn.type}`)
+  }
+
+  const extendedEnv = extendFunctionEnv(fn, args)
+  const evaluated = evaluate(fn.body, extendedEnv)
+  return unwrapReturnValue(evaluated)
+}
+
+function extendFunctionEnv(fn: object.Function, args: object.Object[]) {
+  const env = object.newEnclosedEnvironment(fn.env)
+
+  for (const paramIdx in fn.parameters) {
+    env.set(fn.parameters[paramIdx].value, args[paramIdx])
+  }
+
+  return env
+}
+
+function unwrapReturnValue(obj: object.Object) {
+  if (obj.constructor === object.ReturnValue) {
+    return obj.value
+  }
+
+  return obj
 }
 
 function isTruthy(obj: object.Object) {
