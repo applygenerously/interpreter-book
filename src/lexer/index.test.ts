@@ -24,7 +24,10 @@ describe('lexer', () => {
     }
     
     10 == 10
-    10 != 9`
+    10 != 9
+    
+    "foobar"
+    "foo bar"`
 
     const expected = [
       { type: TokenType.LET, literal: 'let' },
@@ -98,6 +101,9 @@ describe('lexer', () => {
       new Token(TokenType.INT, '10'),
       new Token(TokenType.NOTEQ, '!='),
       new Token(TokenType.INT, '9'),
+      new Token(TokenType.STRING, 'foobar'),
+      new Token(TokenType.STRING, 'foo bar'),
+      // new Token(TokenType.STRING, '"foo bar"'),
       { type: TokenType.EOF, literal: '' },
     ]
 

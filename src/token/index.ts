@@ -7,6 +7,7 @@ enum TokenType {
   // Indentifiers and literals
   IDENT = 'IDENT', // variable names
   INT = 'INT', // 1, 2, 3...
+  STRING = 'STRING',
 
   // Operators
   ASSIGN = '=',

@@ -68,6 +68,18 @@ export default class Lexer {
     return this.input.slice(start, this.position)
   }
 
+  readString() {
+    const start = this.position + 1
+    this.readChar()
+    while (this.ch !== 0 && this.ch !== '"') {
+      console.log('this.ch?', this.ch)
+      console.log('this.peekChar()?', this.peekChar())
+      console.log('this.input[this.readPosition - 1]?', this.input[this.readPosition - 1])
+      this.readChar()
+    }
+    return this.input.slice(start, this.position)
+  }
+
   skipWhitespace() {
     while (/\s/.test(this.ch as string)) {
       this.readChar()
@@ -135,6 +147,9 @@ export default class Lexer {
         break
       case '}':
         tok = new Token(TokenType.RBRACE, this.ch)
+        break
+      case '"':
+        tok = new Token(TokenType.STRING, this.readString())
         break
       case 0:
         tok = new Token(TokenType.EOF, '')
