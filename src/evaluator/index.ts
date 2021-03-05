@@ -234,12 +234,12 @@ function evalIfExpression(node: ast.IfExpression, env: object.Environment) {
 }
 
 function evalIdentifier(node: ast.Identifier, env: object.Environment): object.Object {
-  const isBound = env.has(node.value)
-  if (!isBound) {
+  const obj = env.get(node.value)
+  if (!obj) {
     return new object.Error(`identifier not found: ${node.value}`)
   }
-  // @ts-ignore
-  return env.get(node.value)
+
+  return obj
 }
 
 function evalExpressions(exps: ast.Expression[], env: object.Environment) {

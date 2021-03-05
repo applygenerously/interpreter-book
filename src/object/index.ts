@@ -89,8 +89,9 @@ class Environment {
     return val
   }
 
+  // @ts-ignore
   has(name: string) {
-    return this.store.has(name)
+    return this.store.has(name) || this.outer && this.outer.has(name)
   }
 }
 

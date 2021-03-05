@@ -161,6 +161,19 @@ describe('evaluator', () => {
     const evaluated = testEval(input)
     testIntegerObject(expect, (evaluated as object.Integer), expected)
   })
+
+  // TestClosures
+  test('evaluates closures', () => {
+    const input = `
+      let newAdder = fn(x) {
+        fn(y) { x + y };
+      };
+  
+      let addTwo = newAdder(2);
+      addTwo(2);
+    `
+    testIntegerObject(expect, (testEval(input) as object.Integer), 4)
+  })
 })
 
 function testEval(input: string) {
