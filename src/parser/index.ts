@@ -53,6 +53,7 @@ export default class Parser {
     this.registerPrefix(TokenType.LPAREN, this.parseGroupedExpression)
     this.registerPrefix(TokenType.IF, this.parseIfExpression)
     this.registerPrefix(TokenType.FUNCTION, this.parseFunctionLiteral)
+    this.registerPrefix(TokenType.STRING, this.parseStringLiteral)
     
     this.registerInfix(TokenType.EQ, this.parseInfixExpression)
     this.registerInfix(TokenType.NOTEQ, this.parseInfixExpression)
@@ -149,6 +150,7 @@ export default class Parser {
     const prefix = this.prefixParseFns.get(this.curToken.type)
     if (prefix === undefined) {
       this.noPrefixParserFnError(this.curToken.type)
+      // TODO: remove native error throw so we can view parser errors
       // return null
       throw new Error()
     }
@@ -341,6 +343,10 @@ export default class Parser {
     }
 
     return args
+  }
+
+  parseStringLiteral() {
+    return new ast.StringLiteral(this.curToken, this.curToken.literal)
   }
 
   curTokenIs(t: TokenType) {

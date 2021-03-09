@@ -72,9 +72,6 @@ export default class Lexer {
     const start = this.position + 1
     this.readChar()
     while (this.ch !== 0 && this.ch !== '"') {
-      console.log('this.ch?', this.ch)
-      console.log('this.peekChar()?', this.peekChar())
-      console.log('this.input[this.readPosition - 1]?', this.input[this.readPosition - 1])
       this.readChar()
     }
     return this.input.slice(start, this.position)

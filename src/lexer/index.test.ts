@@ -4,7 +4,8 @@ import Lexer from './'
 describe('lexer', () => {
   test('lexes input into tokens', () => {
     const input = 
-    `let five = 5;
+    `
+    let five = 5;
     
     let ten = 10;
 
@@ -27,7 +28,8 @@ describe('lexer', () => {
     10 != 9
     
     "foobar"
-    "foo bar"`
+    "foo bar"
+    `
 
     const expected = [
       { type: TokenType.LET, literal: 'let' },
@@ -103,7 +105,6 @@ describe('lexer', () => {
       new Token(TokenType.INT, '9'),
       new Token(TokenType.STRING, 'foobar'),
       new Token(TokenType.STRING, 'foo bar'),
-      // new Token(TokenType.STRING, '"foo bar"'),
       { type: TokenType.EOF, literal: '' },
     ]
 

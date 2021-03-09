@@ -12,6 +12,7 @@ import {
   IfExpression,
   FunctionLiteral,
   CallExpression,
+  StringLiteral,
 } from '../ast'
 import Parser from './'
 
@@ -322,6 +323,21 @@ describe('parser', () => {
     for (const [i, arg] of expectedArgs.entries()) {
       expect(expression.args[i].string()).toBe(arg)
     }
+  })
+
+  // TestStringLiteralExpression
+  test.each([
+    ['"hello world";', 'hello world'],
+  ])('parses string literals', (input, expected) => {
+    const l = new Lexer(input)
+    const p = new Parser(l)
+    const program = p.parseProgram()
+    checkParserErrors(p)
+
+    // @ts-ignore
+    const expression = program.statements[0].expression
+    expect(expression).toBeInstanceOf(StringLiteral)
+    expect(expression.value).toBe(expected)
   })
 })
 

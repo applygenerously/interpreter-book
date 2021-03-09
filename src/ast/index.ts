@@ -121,6 +121,24 @@ class IntegerLiteral implements Expression {
   }
 }
 
+class StringLiteral implements Expression {
+  token: Token
+  value: string
+
+  constructor(token: Token, value: string) {
+    this.token = token
+    this.value = value
+  }
+
+  expressionNode() { }
+  tokenLiteral() {
+    return this.token.literal
+  }
+  string() {
+    return this.token.literal
+  }
+}
+
 class PrefixExpression implements Expression {
   token: Token
   operator: string // '-' or '!'
@@ -292,4 +310,5 @@ export {
   FunctionLiteral,
   CallExpression,
   Node,
+  StringLiteral,
 }
