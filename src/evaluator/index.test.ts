@@ -107,11 +107,11 @@ describe('evaluator', () => {
   test.each([
     ['5 + true;', 'type mismatch: INTEGER + BOOLEAN'],
     ['5 + true; 5;', 'type mismatch: INTEGER + BOOLEAN'],
-    ['-true;', 'unkown operator: -BOOLEAN'],
-    ['true + false;', 'unkown operator: BOOLEAN + BOOLEAN'],
-    ['5; true + false; 5;', 'unkown operator: BOOLEAN + BOOLEAN'],
-    ['if (10 > 1) { true + false; }', 'unkown operator: BOOLEAN + BOOLEAN'],
-    ['if (10 > 1) { true + false; }', 'unkown operator: BOOLEAN + BOOLEAN'],
+    ['-true;', 'unknown operator: -BOOLEAN'],
+    ['true + false;', 'unknown operator: BOOLEAN + BOOLEAN'],
+    ['5; true + false; 5;', 'unknown operator: BOOLEAN + BOOLEAN'],
+    ['if (10 > 1) { true + false; }', 'unknown operator: BOOLEAN + BOOLEAN'],
+    ['if (10 > 1) { true + false; }', 'unknown operator: BOOLEAN + BOOLEAN'],
     [
       `if (10 > 1) {
         if (10 > 1) {
@@ -119,9 +119,9 @@ describe('evaluator', () => {
         }
         return 1;
       }`,
-      'unkown operator: BOOLEAN - BOOLEAN'
+      'unknown operator: BOOLEAN - BOOLEAN'
     ],
-    ['foobar', 'identifier not found: foobar'],
+    ['"hello" - "world"', 'unknown operator: STRING - STRING'],
   ])('handles errors', (input, expected) => {
     const errorObj = testEval(input) as object.Error
     expect(errorObj).toBeInstanceOf(object.Error)
@@ -173,6 +173,22 @@ describe('evaluator', () => {
       addTwo(2);
     `
     testIntegerObject(expect, (testEval(input) as object.Integer), 4)
+  })
+
+  // TestStringLiteral
+  test('evaluates strings', () => {
+    const input = '"hello world!"'
+    const evaluated = testEval(input) as object.String
+    expect(evaluated).toBeInstanceOf(object.String)
+    expect(evaluated.value).toBe('hello world!')
+  })
+
+  // TestStringConcatenation
+  test('concatenates strings', () => {
+    const input = `"hello" + " " +  "world!"`
+    const evaluated = testEval(input) as object.String
+    expect(evaluated).toBeInstanceOf(object.String)
+    expect(evaluated.value).toBe('hello world!')
   })
 })
 

@@ -94,6 +94,10 @@ export default function evaluate(node: ast.Node, env: object.Environment): objec
     return evalBlockStatement(node, env)
   }
 
+  if (node?.constructor === ast.StringLiteral) {
+    return new object.String((node as object.String).value)
+  }
+
   return NULL
 }
 
@@ -163,7 +167,7 @@ function evalBangOperatorExpression(right: object.Object) {
 
 function evalMinusPrefixOperatorExpression(right: object.Object) {
   if (right.type !== object.ObjectType.INTEGER_OBJ) {
-    return new object.Error(`unkown operator: -${right.type}`)
+    return new object.Error(`unknown operator: -${right.type}`)
   }
 
   return new object.Integer(-(right as object.Integer).value)
@@ -174,6 +178,11 @@ function evalInfixExpression(operator: string, left: object.Object, right: objec
   if (left.type === object.ObjectType.INTEGER_OBJ && right.type === object.ObjectType.INTEGER_OBJ) {
     return evalIntegerInfixExpression(operator, (left as object.Integer), (right as object.Integer))
   }
+
+  if (left.type === object.ObjectType.STRING_OBJ && right.type === object.ObjectType.STRING_OBJ) {
+    return evalStringInfixExpression(operator, (left as object.String), (right as object.String))
+  }
+
 
   // if left and right operands are booleans
   if (operator === '==') {
@@ -188,7 +197,7 @@ function evalInfixExpression(operator: string, left: object.Object, right: objec
     return new object.Error(`type mismatch: ${left.type} ${operator} ${right.type}`)
   }
 
-  return new object.Error(`unkown operator: ${left.type} ${operator} ${right.type}`)
+  return new object.Error(`unknown operator: ${left.type} ${operator} ${right.type}`)
 }
 
 function evalIntegerInfixExpression(operator: string, left: object.Integer, right: object.Integer) {
@@ -215,6 +224,13 @@ function evalIntegerInfixExpression(operator: string, left: object.Integer, righ
     default:
       return new object.Error(`unknown operator: ${left.type} ${operator} ${right.type}`)
   }
+}
+
+function evalStringInfixExpression(operator: string, left: object.String, right: object.String) {
+  if (operator !== '+') {
+    return new object.Error(`unknown operator: ${left.type} ${operator} ${right.type}`)
+  }
+  return new object.String(left.value.concat(right.value))
 }
 
 function evalIfExpression(node: ast.IfExpression, env: object.Environment) {

@@ -7,6 +7,7 @@ enum ObjectType {
   RETURN_VALUE_OBJ = 'RETURN_VALUE_OBJ',
   ERROR_OBJ = 'ERROR_OBJ',
   FUNCTION_OBJ = 'FUNCTION_OBJ',
+  STRING_OBJ = 'STRING',
 }
 
 class Integer {
@@ -101,14 +102,6 @@ function newEnclosedEnvironment(outer: Environment) {
   return env
 }
 
-// class EnclosedEnvironment {
-//   env: Environment = new Environment()
-
-//   constructor(outer: Environment) {
-//     this.env.outer = outer
-//   }
-// }
-
 class Function {
   type = ObjectType.FUNCTION_OBJ
   parameters: ast.Identifier[]
@@ -127,7 +120,27 @@ class Function {
   }
 }
 
-type Object = Integer | Boolean | Null | Error | ReturnValue | Function
+class String {
+  type = ObjectType.STRING_OBJ
+  value: string
+
+  constructor(value: string) {
+    this.value = value
+  }
+
+  inspect() {
+    return this.value
+  }
+}
+
+type Object =
+  | Integer
+  | Boolean
+  | Null
+  | Error
+  | ReturnValue
+  | Function
+  | String
 
 export {
   Integer,
@@ -139,5 +152,6 @@ export {
   Error,
   Environment,
   Function,
+  String,
   newEnclosedEnvironment,
 }
