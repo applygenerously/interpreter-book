@@ -98,15 +98,15 @@ export default class Parser {
   parseLetStatement() {
     const statement = new ast.LetStatement(this.curToken)
     if (!this.expectPeek(TokenType.IDENT)) {
-      // return null
-      throw new Error()
+      return null
+      // throw new Error()
     }
 
     statement.name = new ast.Identifier(this.curToken, this.curToken.literal)
     
     if (!this.expectPeek(TokenType.ASSIGN)) {
-      // return null
-      throw new Error()
+      return null
+      // throw new Error()
     }
 
     this.nextToken()
@@ -149,8 +149,8 @@ export default class Parser {
     const prefix = this.prefixParseFns.get(this.curToken.type)
     if (prefix === undefined) {
       this.noPrefixParserFnError(this.curToken.type)
-      // return null
-      throw new Error()
+      return null
+      // throw new Error()
     }
 
     let leftExp = prefix()
@@ -197,7 +197,7 @@ export default class Parser {
     } catch(e) {
       const message = `Could not parse ${this.curToken.literal} as number.`
       this.errors.push(message)
-      throw new Error(message)
+      // throw new Error(message)
     }
   }
 
@@ -210,8 +210,8 @@ export default class Parser {
     const expression = this.parseExpression(Precedence.LOWEST)
     if (!this.expectPeek(TokenType.RPAREN)) {
       // syntax error?
-      // return null
-      throw new Error()
+      return null
+      // throw new Error()
     }
     return expression
   }
@@ -220,18 +220,18 @@ export default class Parser {
     const expression = new ast.IfExpression(this.curToken)
     if (!this.expectPeek(TokenType.LPAREN)) {
       // syntax error
-      // return null
-      throw new Error()
+      return null
+      // throw new Error()
     }
     this.nextToken()
     expression.condition = this.parseExpression(Precedence.LOWEST)
     if (!this.expectPeek(TokenType.RPAREN)) {
-      // return null
-      throw new Error()
+      return null
+      // throw new Error()
     }
     if (!this.expectPeek(TokenType.LBRACE)) {
-      // return null
-      throw new Error()
+      return null
+      // throw new Error()
     }
     expression.consequence = this.parseBlockStatement()
 
@@ -239,8 +239,8 @@ export default class Parser {
       this.nextToken()
 
       if (!this.expectPeek(TokenType.LBRACE)) {
-        // return null
-        throw new Error()
+        return null
+        // throw new Error()
       }
 
       expression.alternative = this.parseBlockStatement()
@@ -270,15 +270,15 @@ export default class Parser {
     const literal = new ast.FunctionLiteral(this.curToken)
 
     if (!this.expectPeek(TokenType.LPAREN)) {
-      // return null
-      throw new Error()
+      return null
+      // throw new Error()
     }
 
     literal.parameters = this.parseFunctionParameters()
 
     if (!this.expectPeek(TokenType.LBRACE)) {
-      // return null
-      throw new Error()
+      return null
+      // throw new Error()
     }
 
     literal.body = this.parseBlockStatement()
@@ -305,8 +305,8 @@ export default class Parser {
     }
 
     if (!this.expectPeek(TokenType.RPAREN)) {
-      // return null
-      throw new Error()
+      return null
+      // throw new Error()
     }
 
     return identifiers
@@ -336,8 +336,8 @@ export default class Parser {
     }
 
     if (!this.expectPeek(TokenType.RPAREN)) {
-      // return null
-      throw new Error()
+      return null
+      // throw new Error()
     }
 
     return args
