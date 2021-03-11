@@ -13,6 +13,7 @@ import {
   FunctionLiteral,
   CallExpression,
   StringLiteral,
+  ArrayLiteral,
 } from '../ast'
 import Parser from './'
 
@@ -338,6 +339,36 @@ describe('parser', () => {
     const expression = program.statements[0].expression
     expect(expression).toBeInstanceOf(StringLiteral)
     expect(expression.value).toBe(expected)
+  })
+
+  // TestParsingArrayLiterals
+  test('parses array literals', () => {
+    const input = '[1, 2 * 2, 3 + 3]'
+    const l = new Lexer(input)
+    const p = new Parser(l)
+    const program = p.parseProgram()
+    checkParserErrors(p)
+
+    // @ts-ignore
+    const array = program.statements[0].expression
+    expect(array).toBeInstanceOf(ArrayLiteral)
+    expect(array.elements.length).toBe(3)
+    testIntegerLiteral(expect, array.elements[0], 1)
+    testInfixExpression(expect, array.elements[1], 2, '*', 2)
+    testInfixExpression(expect, array.elements[2], 3, '+', 3)
+  })
+
+  test('parses empty arrays', () => {
+    const input = '[]'
+    const l = new Lexer(input)
+    const p = new Parser(l)
+    const program = p.parseProgram()
+    checkParserErrors(p)
+
+    // @ts-ignore
+    const array = program.statements[0].expression
+    expect(array).toBeInstanceOf(ArrayLiteral)
+    expect(array.elements.length).toBe(0)
   })
 })
 

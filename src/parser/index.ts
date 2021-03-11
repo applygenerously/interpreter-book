@@ -54,6 +54,7 @@ export default class Parser {
     this.registerPrefix(TokenType.IF, this.parseIfExpression)
     this.registerPrefix(TokenType.FUNCTION, this.parseFunctionLiteral)
     this.registerPrefix(TokenType.STRING, this.parseStringLiteral)
+    this.registerPrefix(TokenType.LBRACKET, this.parseArrayLiteral)
     
     this.registerInfix(TokenType.EQ, this.parseInfixExpression)
     this.registerInfix(TokenType.NOTEQ, this.parseInfixExpression)
@@ -315,9 +316,9 @@ export default class Parser {
   }
 
   parseCallExpression(fn: ast.Expression) {
-    const expression = new ast.CallExpression(this.curToken, fn)
-    expression.args = this.parseCallArguments()
-    return expression
+    const exp = new ast.CallExpression(this.curToken, fn)
+    exp.args = this.parseExpressionList(TokenType.RPAREN)
+    return exp
   }
 
   parseCallArguments() {
@@ -347,6 +348,36 @@ export default class Parser {
 
   parseStringLiteral() {
     return new ast.StringLiteral(this.curToken, this.curToken.literal)
+  }
+
+  parseArrayLiteral() {
+    return new ast.ArrayLiteral(this.curToken, this.parseExpressionList(TokenType.RBRACKET))
+  }
+
+  parseExpressionList(end: TokenType) {
+    const expressions = [] as ast.Expression[]
+
+    if (this.peekTokenIs(end)) {
+      this.nextToken()
+      return expressions
+    }
+
+    this.nextToken()
+    expressions.push(this.parseExpression(Precedence.LOWEST))
+
+    while (this.peekTokenIs(TokenType.COMMA)) {
+      this.nextToken()
+      this.nextToken()
+      expressions.push(this.parseExpression(Precedence.LOWEST))
+    }
+
+    if (!this.expectPeek(end)) {
+      // syntax error
+      // return null
+      throw new Error()
+    }
+
+    return expressions
   }
 
   curTokenIs(t: TokenType) {

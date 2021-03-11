@@ -29,6 +29,8 @@ describe('lexer', () => {
     
     "foobar"
     "foo bar"
+
+    [1, 2];
     `
 
     const expected = [
@@ -105,6 +107,12 @@ describe('lexer', () => {
       new Token(TokenType.INT, '9'),
       new Token(TokenType.STRING, 'foobar'),
       new Token(TokenType.STRING, 'foo bar'),
+      new Token(TokenType.LBRACKET, '['),
+      new Token(TokenType.INT, '1'),
+      new Token(TokenType.COMMA, ','),
+      new Token(TokenType.INT, '2'),
+      new Token(TokenType.RBRACKET, ']'),
+      new Token(TokenType.SEMICOLON, ';'),
       { type: TokenType.EOF, literal: '' },
     ]
 

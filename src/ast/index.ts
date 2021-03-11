@@ -274,6 +274,23 @@ class CallExpression implements Expression {
   }
 }
 
+class ArrayLiteral implements Expression {
+  token: Token // the '[' token
+  elements: Expression[] = []
+
+  constructor(token: Token, elements: Expression[]) {
+    this.token = token
+    this.elements = elements
+  }
+  expressionNode() { }
+  tokenLiteral() {
+    return this.token.literal
+  }
+  string() {
+    return `[${this.elements.join(', ')}]`
+  }
+}
+
 type Node =
   | ASTNode
   | Expression
@@ -291,6 +308,7 @@ type Node =
   | BlockStatement
   | FunctionLiteral
   | CallExpression
+  | ArrayLiteral
 
 export {
   ASTNode,
@@ -311,4 +329,5 @@ export {
   CallExpression,
   Node,
   StringLiteral,
+  ArrayLiteral,
 }
