@@ -8,6 +8,7 @@ enum ObjectType {
   ERROR_OBJ = 'ERROR_OBJ',
   FUNCTION_OBJ = 'FUNCTION_OBJ',
   STRING_OBJ = 'STRING',
+  BUILTIN_OBJ = 'BUILTIN',
 }
 
 class Integer {
@@ -133,6 +134,21 @@ class String {
   }
 }
 
+type BuiltinFunction = (...args: Object[]) => Object
+
+class Builtin {
+  type = ObjectType.BUILTIN_OBJ
+  fn: BuiltinFunction
+
+  constructor(fn: BuiltinFunction) {
+    this.fn = fn
+  }
+
+  inspect() {
+    return 'builtin function'
+  }
+}
+
 type Object =
   | Integer
   | Boolean
@@ -153,5 +169,6 @@ export {
   Environment,
   Function,
   String,
+  Builtin,
   newEnclosedEnvironment,
 }

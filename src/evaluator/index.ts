@@ -1,5 +1,6 @@
 import * as ast from '../ast'
 import * as object from '../object'
+import builtins from './builtins'
 
 const TRUE = new object.Boolean(true)
 const FALSE = new object.Boolean(false)
@@ -250,12 +251,17 @@ function evalIfExpression(node: ast.IfExpression, env: object.Environment) {
 }
 
 function evalIdentifier(node: ast.Identifier, env: object.Environment): object.Object {
-  const obj = env.get(node.value)
-  if (!obj) {
-    return new object.Error(`identifier not found: ${node.value}`)
+  const val = env.get(node.value)
+  if (val) {
+    return val
   }
 
-  return obj
+  const builtin = builtins.get(node.value)
+  if (builtin) {
+    return builtin
+  }
+
+  return new object.Error(`identifier not found: ${node.value}`)
 }
 
 function evalExpressions(exps: ast.Expression[], env: object.Environment) {
@@ -270,14 +276,19 @@ function evalExpressions(exps: ast.Expression[], env: object.Environment) {
   return result
 }
 
-function applyFunction(fn: object.Function, args: object.Object[]) {
-  if (fn.constructor !== object.Function) {
-    return new object.Error(`not a function: ${fn.type}`)
+function applyFunction(fn: object.Function | object.Builtin, args: object.Object[]) {
+  switch (fn.type) {
+    case object.ObjectType.FUNCTION_OBJ:
+      const func = fn as object.Function
+      const extendedEnv = extendFunctionEnv(func, args)
+      const evaluated = evaluate(func.body, extendedEnv)
+      return unwrapReturnValue(evaluated)
+    case object.ObjectType.BUILTIN_OBJ:
+      const builtinFn = fn as object.Builtin
+      return builtinFn.fn(...args)
+    default:
+      return new object.Error(`not a function: ${fn.type}`)
   }
-
-  const extendedEnv = extendFunctionEnv(fn, args)
-  const evaluated = evaluate(fn.body, extendedEnv)
-  return unwrapReturnValue(evaluated)
 }
 
 function extendFunctionEnv(fn: object.Function, args: object.Object[]) {

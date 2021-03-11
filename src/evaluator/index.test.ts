@@ -190,6 +190,26 @@ describe('evaluator', () => {
     expect(evaluated).toBeInstanceOf(object.String)
     expect(evaluated.value).toBe('hello world!')
   })
+
+  // TestBuiltinFunctions
+  test.each([
+    ['len("")', 0],
+    ['len("four")', 4],
+    ['len("hello world")', 11],
+    ['len(1)', 'argument to `len` not supported, got INTEGER'],
+    ['len("one", "two")', 'wrong number of arguments. got=2, want=1'],
+  ])('evaluates builtin functions', (input, expected) => {
+    const evaluated = testEval(input)
+    if (typeof expected === 'number') {
+      const integerObj = evaluated as object.Integer
+      testIntegerObject(expect, integerObj, expected)
+    }
+    if (typeof expected === 'string') {
+      const errorObj = evaluated as object.Error
+      expect(errorObj.type).toBe(object.ObjectType.ERROR_OBJ)
+      expect(errorObj.message).toBe(expected)
+    }
+  })
 })
 
 function testEval(input: string) {
