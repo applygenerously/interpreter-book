@@ -9,6 +9,7 @@ enum ObjectType {
   FUNCTION_OBJ = 'FUNCTION_OBJ',
   STRING_OBJ = 'STRING',
   BUILTIN_OBJ = 'BUILTIN',
+  ARRAY_OBJ = 'ARRAY',
 }
 
 class Integer {
@@ -129,6 +130,7 @@ class String {
     this.value = value
   }
 
+  // @ts-ignore
   inspect() {
     return this.value
   }
@@ -149,6 +151,20 @@ class Builtin {
   }
 }
 
+class Array {
+  type = ObjectType.ARRAY_OBJ
+  elements: Object[] = []
+
+  constructor(elements: Object[]) {
+    this.elements = elements
+  }
+
+  // @ts-ignore
+  inspect() {
+    return `[${this.elements.map(e => e.inspect()).join(', ')}]`
+  }
+}
+
 type Object =
   | Integer
   | Boolean
@@ -157,6 +173,8 @@ type Object =
   | ReturnValue
   | Function
   | String
+  | Builtin
+  | Array
 
 export {
   Integer,
@@ -170,5 +188,6 @@ export {
   Function,
   String,
   Builtin,
+  Array,
   newEnclosedEnvironment,
 }

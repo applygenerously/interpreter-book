@@ -275,7 +275,7 @@ class CallExpression implements Expression {
 }
 
 class ArrayLiteral implements Expression {
-  token: Token // the '[' token
+  token: Token // the [ token
   elements: Expression[] = []
 
   constructor(token: Token, elements: Expression[]) {
@@ -287,7 +287,25 @@ class ArrayLiteral implements Expression {
     return this.token.literal
   }
   string() {
-    return `[${this.elements.join(', ')}]`
+    return `[${this.elements.map(e => e.string()).join(', ')}]`
+  }
+}
+
+class IndexExpression implements Expression {
+  token: Token // the [ token
+  left: Expression // must produce an array
+  index!: Expression // must produce an integer
+
+  constructor(token: Token, left: Expression) {
+    this.token = token
+    this.left = left
+  }
+  expressionNode() { }
+  tokenLiteral() {
+    return this.token.literal
+  }
+  string() {
+    return `(${this.left.string()}[${this.index.string()}])`
   }
 }
 
@@ -309,6 +327,7 @@ type Node =
   | FunctionLiteral
   | CallExpression
   | ArrayLiteral
+  | IndexExpression
 
 export {
   ASTNode,
@@ -330,4 +349,5 @@ export {
   Node,
   StringLiteral,
   ArrayLiteral,
+  IndexExpression,
 }

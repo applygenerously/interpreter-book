@@ -99,6 +99,14 @@ export default function evaluate(node: ast.Node, env: object.Environment): objec
     return new object.String((node as object.String).value)
   }
 
+  if (node?.constructor === ast.ArrayLiteral) {
+    const elements = evalExpressions(node.elements, env)
+    if (elements.length === 1 && isError(elements[0])) {
+      return elements[0]
+    }
+    return new object.Array(elements)
+  }
+
   return NULL
 }
 

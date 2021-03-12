@@ -13,6 +13,7 @@ enum Precedence {
   PRODUCT, // *
   PREFIX, // -x or !x
   CALL, // myFunction(x)
+  INDEX, // array[index]
 }
 
 const precedences = new Map<TokenType, Precedence>([
@@ -25,6 +26,7 @@ const precedences = new Map<TokenType, Precedence>([
   [TokenType.SLASH, Precedence.PRODUCT],
   [TokenType.ASTERISK, Precedence.PRODUCT],
   [TokenType.LPAREN, Precedence.CALL],
+  [TokenType.LBRACKET, Precedence.INDEX]
 ])
 
 export default class Parser {
@@ -65,6 +67,7 @@ export default class Parser {
     this.registerInfix(TokenType.SLASH, this.parseInfixExpression)
     this.registerInfix(TokenType.ASTERISK, this.parseInfixExpression)
     this.registerInfix(TokenType.LPAREN, this.parseCallExpression)
+    this.registerInfix(TokenType.LBRACKET, this.parseIndexExpression)
   }
 
   nextToken() {
@@ -378,6 +381,20 @@ export default class Parser {
     }
 
     return expressions
+  }
+
+  parseIndexExpression(left: ast.Expression) {
+    const exp = new ast.IndexExpression(this.curToken, left)
+
+    this.nextToken()
+    exp.index = this.parseExpression(Precedence.LOWEST)
+
+    if (!this.expectPeek(TokenType.RBRACKET)) {
+      // return null
+      throw new Error()
+    }
+
+    return exp
   }
 
   curTokenIs(t: TokenType) {

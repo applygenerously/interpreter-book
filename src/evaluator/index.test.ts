@@ -210,6 +210,17 @@ describe('evaluator', () => {
       expect(errorObj.message).toBe(expected)
     }
   })
+
+  // TestArrayLiterals
+  test('evaluates array literals', () => {
+    const input = '[1, 2 * 2, 3 + 3]'
+    const evaluated = testEval(input) as object.Array
+    expect(evaluated).toBeInstanceOf(object.Array)
+    expect(evaluated.elements.length).toBe(3)
+    testIntegerObject(expect, (evaluated.elements[0] as object.Integer), 1)
+    testIntegerObject(expect, (evaluated.elements[1] as object.Integer), 4)
+    testIntegerObject(expect, (evaluated.elements[2] as object.Integer), 6)
+  })
 })
 
 function testEval(input: string) {
