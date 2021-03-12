@@ -198,6 +198,19 @@ describe('evaluator', () => {
     ['len("hello world")', 11],
     ['len(1)', 'argument to `len` not supported, got INTEGER'],
     ['len("one", "two")', 'wrong number of arguments. got=2, want=1'],
+    ['len([1, 2, 3])', 3],
+    ['len([])', 0],
+    ['puts("hello", "world!")', null],
+    ['first([1, 2, 3])', 1],
+    ['first([])', null],
+    ['first(1)', 'argument to \'first\' must be ARRAY, got INTEGER'],
+    ['last([1, 2, 3])', 3],
+    ['last([])', null],
+    ['last(1)', 'argument to \'last\' must be ARRAY, got INTEGER'],
+    ['rest([1, 2, 3])', [2, 3]],
+    ['rest([])', null],
+    ['push([], 1)', [1]],
+    ['push(1, 1)', 'argument to \'push\' must be ARRAY, got INTEGER'],
   ])('evaluates builtin functions', (input, expected) => {
     const evaluated = testEval(input)
     if (typeof expected === 'number') {
@@ -208,6 +221,19 @@ describe('evaluator', () => {
       const errorObj = evaluated as object.Error
       expect(errorObj.type).toBe(object.ObjectType.ERROR_OBJ)
       expect(errorObj.message).toBe(expected)
+    }
+    if (typeof expected === null) {
+      const nullObj = evaluated as object.Null
+      testNullObject(expect, nullObj)
+    }
+    if (Array.isArray(expected)) {
+      const arrayObj = evaluated as object.Array
+      expect(arrayObj.type).toBe(object.ObjectType.ARRAY_OBJ)
+      expect(arrayObj.elements.length).toBe(expected.length)
+      expected.forEach((e, i) => {
+        const el = arrayObj.elements[i] as object.Integer
+        testIntegerObject(expect, el, e)
+      })
     }
   })
 
@@ -220,6 +246,27 @@ describe('evaluator', () => {
     testIntegerObject(expect, (evaluated.elements[0] as object.Integer), 1)
     testIntegerObject(expect, (evaluated.elements[1] as object.Integer), 4)
     testIntegerObject(expect, (evaluated.elements[2] as object.Integer), 6)
+  })
+
+  // TestArrayIndexExpressions
+  test.each([
+    ['[1, 2, 3][0]', 1],
+    ['[1, 2, 3][1]', 2],
+    ['[1, 2, 3][2]', 3],
+    ['let i = 0; [1][i]', 1],
+    ['[1, 2, 3][1 + 1]', 3],
+    ['let myArray = [1, 2, 3]; myArray[2]', 3],
+    ['let myArray = [1, 2, 3]; myArray[0] + myArray[1] + myArray[2]', 6],
+    ['let myArray = [1, 2, 3]; let i = myArray[0]; myArray[i]', 2],
+    ['[1, 2, 3][3]', null],
+    ['[1, 2, 3][-1]', null],
+  ])('evaluates array index expressions', (input, expected) => {
+    const evaluated = testEval(input)
+    if (typeof expected === 'number') {
+      testIntegerObject(expect, (evaluated as object.Integer), expected)
+    } else {
+      testNullObject(expect, (evaluated as object.Null))
+    }
   })
 })
 

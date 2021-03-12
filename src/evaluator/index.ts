@@ -107,6 +107,18 @@ export default function evaluate(node: ast.Node, env: object.Environment): objec
     return new object.Array(elements)
   }
 
+  if (node?.constructor === ast.IndexExpression) {
+    const left = evaluate(node.left, env)
+    if (isError(left)) {
+      return left
+    }
+    const index = evaluate(node.index, env)
+    if (isError(index)) {
+      return index
+    }
+    return evalIndexExpression(left, index)
+  }
+
   return NULL
 }
 
@@ -282,6 +294,24 @@ function evalExpressions(exps: ast.Expression[], env: object.Environment) {
     result.push(evaluated)
   }
   return result
+}
+
+function evalIndexExpression(left: object.Object, index: object.Object) {
+  if (left.type === object.ObjectType.ARRAY_OBJ && index.type === object.ObjectType.INTEGER_OBJ) {
+    const arr = left as object.Array
+    const idx = index as object.Integer
+    return evalArrayIndexExpression(arr, idx)
+  }
+  return new object.Error(`index operator not supported: ${left.type}`)
+}
+
+function evalArrayIndexExpression(array: object.Array, index: object.Integer) {
+  const idx = index.value
+  const max = array.elements.length - 1
+  if (idx < 0 || idx > max) {
+    return NULL
+  }
+  return array.elements[idx]
 }
 
 function applyFunction(fn: object.Function | object.Builtin, args: object.Object[]) {
