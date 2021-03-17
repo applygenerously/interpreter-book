@@ -13,7 +13,8 @@
     "watch": "tsc -w",
     "test": "jest",
     "type-check": "tsc",
-    "repl": "node dist/index"
+    "repl": "node dist/index",
+    "interpret": "node dist/interpret"
   },
   "devDependencies": {
     "@babel/core": "^7.12.10",

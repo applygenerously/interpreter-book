@@ -118,7 +118,7 @@ class Function {
 
   //  @ts-ignore
   inspect() {
-    return `fn(${this.parameters.join(', ')}) {\n${this.body.string()}\n}`
+    return `fn(${this.parameters.map(p => p.string()).join(', ')}) {\n${this.body.string()}\n}`
   }
 }
 
